@@ -1,15 +1,11 @@
 import numpy as np
 import cv2
-from face_detector import FaceDetector
-from mark_detector import MarkDetector
 
 
 class FaceAligner:
     def __init__(self, desiredLeftEye=(0.42, 0.42),
                  desiredFaceWidth=256, desiredFaceHeight=None):
 
-        self.detector = FaceDetector()
-        self.predictor = MarkDetector()
         self.desiredLeftEye = desiredLeftEye
         self.desiredFaceWidth = desiredFaceWidth
         self.desiredFaceHeight = desiredFaceHeight
@@ -17,12 +13,10 @@ class FaceAligner:
         if self.desiredFaceHeight is None:
             self.desiredFaceHeight = self.desiredFaceWidth
 
-    def align(self, image, rect):
-        # convert the landmark (x, y)-coordinates to a NumPy array
-        shape = self.predictor.detect_marks(image, rect)
+    def align(self, image, marks):
 
-        leftEyePts = shape[36:42]
-        rightEyePts = shape[42:48]
+        leftEyePts = marks[36:42]
+        rightEyePts = marks[42:48]
 
         # compute the center of mass for each eye
         leftEyeCenter = leftEyePts.mean(axis=0).astype("int")
@@ -69,19 +63,16 @@ class FaceAligner:
         # return the aligned face
         return output
 
-    def test_aligner(self):
+    def test(self, face_detector, mark_predictor):
         cap = cv2.VideoCapture(0)
         while True:
             success, img = cap.read()
-            face_boxes, face_confidences = self.detector.find_face_boxes(img)
-            #gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
-            new_img = self.align(img, face_boxes[0])
+            face_boxes, face_confidences = face_detector.find_face_boxes(img)
+            marks = mark_predictor.detect_marks(img, face_boxes[0])
+            new_img = self.align(img, marks)
 
-            cv2.imshow('input', img)
-            cv2.imshow('output', new_img)
+            cv2.imshow('Aligner input', img)
+            cv2.imshow('Aligner output', new_img)
             if cv2.waitKey(1) & 0xFF == ord('q'):
                 break
 
-
-# aligner = FaceAligner()
-# aligner.test_aligner()
