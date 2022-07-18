@@ -14,21 +14,23 @@ class LandmarksDetector2:
             coords[i] = (shape.part(i).x, shape.part(i).y)
         return coords
 
-    def detect_marks(self, img, face_box):
+    def detect_landmarks(self, img, face_box):
         rect = dlib.rectangle(face_box[0], face_box[1], face_box[2], face_box[3])
         marks = self.predictor(img, rect)
-        #marks = self.shape_to_np(marks)
+        # marks = self.shape_to_np(marks)
         return marks
+
+    def draw_landmarks(self, image, landmarks):
+        for i in range(0, 68):
+            cv2.circle(image, (landmarks.part(i).x, landmarks.part(i).y), 2, (0, 255, 0), -1, cv2.LINE_AA)
 
     def test(self, face_detector):
         cap = cv2.VideoCapture(0)
         while True:
             success, img = cap.read()
             face_boxes, face_confidences = face_detector.find_face_boxes(img)
-            marks = self.detect_marks(img, face_boxes[0])
-
-            for (x, y) in marks:
-                cv2.circle(img, (x, y), 2, (0, 255, 0), -1, cv2.LINE_AA)
+            marks = self.detect_landmarks(img, face_boxes[0])
+            self.draw_landmarks(img, marks)
 
             cv2.imshow('output', img)
             if cv2.waitKey(1) & 0xFF == ord('q'):

@@ -8,7 +8,7 @@ class FaceRecognizer:
 
     def __init__(self, face_detector, face_aligner):
         self.net = dlib.face_recognition_model_v1("models/dlib_face_recognition_resnet_model_v1.dat")
-        #self.net = cv2.dnn.readNetFromTorch("models/nn4.small2.v1.t7")
+        # self.net = cv2.dnn.readNetFromTorch("models/nn4.small2.v1.t7")
         self.face_detector = face_detector
         self.face_aligner = face_aligner
         self.initial_image_encodings = None
@@ -21,7 +21,7 @@ class FaceRecognizer:
             coords[i] = (shape.part(i).x, shape.part(i).y)
         return coords
 
-    def set_image(self, image, face_box, initial, marks):
+    def set_image(self, image, face_box, marks, initial):
         encodings = []
         if not initial:
             marks_np = self.shape_to_np(marks)
@@ -54,8 +54,8 @@ class FaceRecognizer:
     def compare_faces(self):
         dist = np.linalg.norm(self.initial_image_encodings - self.input_image_encodings)
         # dist = sqrt(sum((e1 - e2) ** 2 for e1, e2 in zip(self.initial_image_encodings, self.input_image_encodings)))
-        # print(dist)
-        if dist <= 0.4:
+        print(dist)
+        if dist <= 0.6:
             return True
         else:
             return False
@@ -67,18 +67,18 @@ class FaceRecognizer:
 
         face_boxes, face_confidences = face_detector.find_face_boxes(student_image)
         if len(face_boxes) == 1:
-            marks = mark_detector.detect_marks(student_image, face_boxes[0])
-            if self.set_image(student_image, face_boxes[0], True, marks):
+            marks = mark_detector.detect_landmarks(student_image, face_boxes[0])
+            if self.set_image(student_image, face_boxes[0], marks, True):
                 cap = cv2.VideoCapture(0)
                 while True:
                     success, img = cap.read()
                     #print(counter)
                     if counter % 260 == 0:
-                        print(counter)
+                        # print(counter)
                         face_boxes, face_confidences = face_detector.find_face_boxes(img)
-                        marks = mark_detector.detect_marks(img, face_boxes[0])
+                        marks = mark_detector.detect_landmarks(img, face_boxes[0])
                         if len(face_boxes) == 1:
-                            if self.set_image(img, face_boxes[0], False, marks):
+                            if self.set_image(img, face_boxes[0], marks, False):
                                 if self.compare_faces():
                                     print('valid')
                                     cv2.putText(img, 'valid', (0, 10), cv2.FONT_HERSHEY_SIMPLEX, 0.45, (0, 0, 255), 2)

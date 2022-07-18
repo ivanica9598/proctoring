@@ -15,11 +15,7 @@ class FaceDetector:
 
     def find_face_boxes(self, image, threshold=0.5):
         (h, w) = image.shape[:2]
-        # load the input image and construct an input blob for the image
-        # by resizing to a fixed 300x300 pixels and then normalizing it
         blob = cv2.dnn.blobFromImage(cv2.resize(image, (300, 300)), 1.0, (300, 300), (104.0, 177.0, 123.0))
-        # pass the blob through the network and obtain the detections and
-        # predictions
         self.net.setInput(blob)
         detections = self.net.forward()
 
@@ -44,6 +40,11 @@ class FaceDetector:
             y = startY - 10 if startY - 10 > 10 else startY + 10
             cv2.rectangle(image, (startX, startY), (endX, endY), (0, 0, 255), 2)
             cv2.putText(image, text, (startX, y), cv2.FONT_HERSHEY_SIMPLEX, 0.45, (0, 0, 255), 2)
+
+    def draw_face(self, image, face_box):
+        (startX, startY, endX, endY) = face_box[0], face_box[1], face_box[2], face_box[3]
+        y = startY - 10 if startY - 10 > 10 else startY + 10
+        cv2.rectangle(image, (startX, startY), (endX, endY), (0, 0, 255), 2)
 
     def test(self):
         cap = cv2.VideoCapture(0)

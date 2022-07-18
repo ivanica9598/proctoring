@@ -1,13 +1,11 @@
 import cv2
 import numpy as np
 import tensorflow as tf
-from face_detector import FaceDetector
 
 
 class LandmarksDetector1:
     def __init__(self):
         self.model = tf.saved_model.load('models/pose_model')
-        self.face_detector = FaceDetector()
 
     def get_square_box(self, box):
         left_x = box[0]
@@ -45,7 +43,7 @@ class LandmarksDetector1:
         bottom_y = box[3] + offset[1]
         return [left_x, top_y, right_x, bottom_y]
 
-    def detect_marks(self, img, face):
+    def detect_landmarks(self, img, face):
         offset_y = int(abs((face[3] - face[1]) * 0.1))
         box_moved = self.move_box(face, [0, offset_y])
         facebox = self.get_square_box(box_moved)
@@ -80,19 +78,18 @@ class LandmarksDetector1:
 
         return marks
 
-    def draw_marks(self, image, marks, color=(0, 255, 0)):
-        for mark in marks:
-            cv2.circle(image, (mark[0], mark[1]), 2, color, -1, cv2.LINE_AA)
+    def draw_landmarks(self, image, landmarks):
+        for mark in landmarks:
+            cv2.circle(image, (mark[0], mark[1]), 2, (0, 255, 0), -1, cv2.LINE_AA)
 
-    def test_detector(self):
+    def test(self, face_detector):
         cap = cv2.VideoCapture(0)
         while True:
             success, img = cap.read()
-            face_boxes, face_confidences = self.face_detector.find_face_boxes(img)
-            marks = self.detect_marks(img, face_boxes[0])
-            self.draw_marks(img, marks)
+            face_boxes, face_confidences = face_detector.find_face_boxes(img)
+            marks = self.detect_landmarks(img, face_boxes[0])
+            self.draw_landmarks(img, marks)
 
             cv2.imshow('output', img)
             if cv2.waitKey(1) & 0xFF == ord('q'):
                 break
-
