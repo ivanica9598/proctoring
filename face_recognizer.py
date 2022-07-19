@@ -14,27 +14,17 @@ class FaceRecognizer:
         self.initial_image_encodings = None
         self.input_image_encodings = None
 
-    def shape_to_np(self, shape, dtype="int"):
-        coords = np.zeros((68, 2), dtype=dtype)
-
-        for i in range(0, 68):
-            coords[i] = (shape.part(i).x, shape.part(i).y)
-        return coords
-
     def set_image(self, image, face_box, marks, initial):
         encodings = []
         if not initial:
-            marks_np = self.shape_to_np(marks)
-            new_img = self.face_aligner.align(image, marks_np)
+            new_img = self.face_aligner.align(image, marks)
             face_boxes, face_confidences = self.face_detector.find_face_boxes(new_img)
             # encodings = self.calculate_encodings(new_img, face_boxes[0])
             encodings = np.array(self.net.compute_face_descriptor(image, marks, 1))
-            # print(encodings)
             self.input_image_encodings = encodings
         else:
             # encodings = self.calculate_encodings(image, face_box)
             encodings = np.array(self.net.compute_face_descriptor(image, marks, 1))
-            # print(encodings)
             self.initial_image_encodings = encodings
         return len(encodings) != 0
 
@@ -61,7 +51,6 @@ class FaceRecognizer:
             return False
 
     def test(self, face_detector, mark_detector):
-        counter = 0
         image_path = "images/face.jpg"
         student_image = cv2.imread(image_path)
 
@@ -72,24 +61,21 @@ class FaceRecognizer:
                 cap = cv2.VideoCapture(0)
                 while True:
                     success, img = cap.read()
-                    #print(counter)
-                    if counter % 260 == 0:
-                        # print(counter)
-                        face_boxes, face_confidences = face_detector.find_face_boxes(img)
-                        marks = mark_detector.detect_landmarks(img, face_boxes[0])
-                        if len(face_boxes) == 1:
-                            if self.set_image(img, face_boxes[0], marks, False):
-                                if self.compare_faces():
-                                    print('valid')
-                                    cv2.putText(img, 'valid', (0, 10), cv2.FONT_HERSHEY_SIMPLEX, 0.45, (0, 0, 255), 2)
-                                else:
-                                    print('fake')
-                                    cv2.putText(img, 'fake', (0, 10), cv2.FONT_HERSHEY_SIMPLEX, 0.45, (0, 0, 255), 2)
+                    face_boxes, face_confidences = face_detector.find_face_boxes(img)
+                    marks = mark_detector.detect_landmarks(img, face_boxes[0])
+                    if len(face_boxes) == 1:
+                        if self.set_image(img, face_boxes[0], marks, False):
+                            if self.compare_faces():
+                                print('valid')
+                                cv2.putText(img, 'valid', (0, 10), cv2.FONT_HERSHEY_SIMPLEX, 0.45, (0, 0, 255), 2)
                             else:
-                                print('Input image face not detected')
+                                print('fake')
+                                cv2.putText(img, 'fake', (0, 10), cv2.FONT_HERSHEY_SIMPLEX, 0.45, (0, 0, 255), 2)
                         else:
                             print('Input image face not detected')
-                    counter = counter + 1
+                    else:
+                        print('Input image face not detected')
+
                     cv2.imshow('output', img)
                     if cv2.waitKey(1) & 0xFF == ord('q'):
                         break

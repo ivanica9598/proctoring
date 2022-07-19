@@ -1,5 +1,6 @@
 import numpy as np
 import cv2
+from helpers import shape_to_np
 
 
 class FaceAligner:
@@ -14,6 +15,7 @@ class FaceAligner:
             self.desiredFaceHeight = self.desiredFaceWidth
 
     def align(self, image, marks):
+        marks = shape_to_np(marks)
         leftEyePts = marks[36:42]
         rightEyePts = marks[42:48]
 

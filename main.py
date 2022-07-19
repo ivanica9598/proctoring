@@ -26,14 +26,13 @@ head_pose_detector = HeadPoseDetector()
 # landmarks_detector.test(face_detector)
 
 # Test face aligner
-# face_aligner.test(face_detector, landmarks_detector_2)
+# face_aligner.test(face_detector, landmarks_detector)
 
 # Test face recognizer
-# face_recognizer.test(face_detector, landmarks_detector_2)
-
+# face_recognizer.test(face_detector, landmarks_detector)
 
 # Test head pose detector
-# head_pose_detector.test(face_detector, mark_detector_dlib)
+# head_pose_detector.test(face_detector, landmarks_detector)
 
 
 def main():
@@ -56,7 +55,7 @@ def main():
                     input_face_box = input_image_face_boxes[0]
                     face_detector.draw_face(input_image, input_face_box)
                     input_landmarks = landmarks_detector.detect_landmarks(input_image, input_face_box)
-                    landmarks_detector.draw_landmarks(input_image, input_landmarks)
+                    landmarks_detector.draw_landmarks(input_image)
 
                     if counter % 60 == 0:
                         if face_recognizer.set_image(input_image, input_face_box, input_landmarks, False):
@@ -79,4 +78,4 @@ def main():
         print('Student image must have one face!')
 
 
-# main()
+main()
