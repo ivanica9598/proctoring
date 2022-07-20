@@ -13,9 +13,10 @@ from people_and_devices_detector import PeopleAndDevicesDetector
 face_detector = FaceDetector()
 landmarks_detector_1 = LandmarksDetector1()
 landmarks_detector_2 = LandmarksDetector2()
-landmarks_detector = landmarks_detector_2
+landmarks_detector = landmarks_detector_1
 face_aligner = FaceAligner()
 face_recognizer = FaceRecognizer(face_detector, face_aligner)
+mouth_tracker = MouthTracker()
 head_pose_detector = HeadPoseDetector()
 
 
@@ -30,6 +31,9 @@ head_pose_detector = HeadPoseDetector()
 
 # Test face recognizer
 # face_recognizer.test(face_detector, landmarks_detector)
+
+# Test mouth tracker
+# mouth_tracker.test(face_detector, landmarks_detector)
 
 # Test head pose detector
 # head_pose_detector.test(face_detector, landmarks_detector)
@@ -46,6 +50,7 @@ def main():
         student_face_box = student_image_face_boxes[0]
         student_landmarks = landmarks_detector.detect_landmarks(student_image, student_face_box)
         if face_recognizer.set_image(student_image, student_face_box, student_landmarks, True):
+            mouth_tracker.set_image(student_landmarks, True)
             cap = cv2.VideoCapture(0)
             counter = 0
             while True:
@@ -56,6 +61,12 @@ def main():
                     face_detector.draw_face(input_image, input_face_box)
                     input_landmarks = landmarks_detector.detect_landmarks(input_image, input_face_box)
                     landmarks_detector.draw_landmarks(input_image)
+
+                    mouth_tracker.set_image(input_landmarks, False)
+                    if mouth_tracker.compare_faces():
+                        print('Talking')
+                    else:
+                        print('Not talking')
 
                     if counter % 60 == 0:
                         if face_recognizer.set_image(input_image, input_face_box, input_landmarks, False):

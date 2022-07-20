@@ -45,7 +45,7 @@ class FaceRecognizer:
         dist = np.linalg.norm(self.initial_image_encodings - self.input_image_encodings)
         # dist = sqrt(sum((e1 - e2) ** 2 for e1, e2 in zip(self.initial_image_encodings, self.input_image_encodings)))
         print(dist)
-        if dist <= 0.6:
+        if dist <= 0.7:
             return True
         else:
             return False
