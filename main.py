@@ -9,6 +9,7 @@ from mouth_tracker import MouthTracker
 from head_pose_detector import HeadPoseDetector
 from liveness_detector import LivenessDetector
 from people_and_devices_detector import PeopleAndDevicesDetector
+from gaze_tracking import GazeTracking
 
 face_detector = FaceDetector()
 landmarks_detector_1 = LandmarksDetector1()
@@ -17,6 +18,8 @@ landmarks_detector = landmarks_detector_1
 face_aligner = FaceAligner()
 face_recognizer = FaceRecognizer(face_detector, face_aligner)
 mouth_tracker = MouthTracker()
+eyes_tracker = EyesTracker()
+gaze = GazeTracking()
 head_pose_detector = HeadPoseDetector()
 
 
@@ -35,8 +38,14 @@ head_pose_detector = HeadPoseDetector()
 # Test mouth tracker
 # mouth_tracker.test(face_detector, landmarks_detector)
 
+# Test eyes tracker
+# eyes_tracker.test(face_detector, landmarks_detector)
+
 # Test head pose detector
 # head_pose_detector.test(face_detector, landmarks_detector)
+
+# Test gaze detector
+# gaze.test(face_detector, landmarks_detector)
 
 
 def main():
@@ -68,6 +77,9 @@ def main():
                     else:
                         print('Not talking')
 
+                    eyes_check_resulut = gaze.check_frame(input_image, input_landmarks)
+                    print(eyes_check_resulut)
+
                     if counter % 60 == 0:
                         if face_recognizer.set_image(input_image, input_face_box, input_landmarks, False):
                             if face_recognizer.compare_faces():
@@ -89,4 +101,4 @@ def main():
         print('Student image must have one face!')
 
 
-main()
+# main()
