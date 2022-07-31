@@ -1,6 +1,7 @@
 import cv2
 import numpy as np
 import math
+from helpers import shape_to_np
 
 
 class HeadPoseDetector:
@@ -147,7 +148,8 @@ class HeadPoseDetector:
             if ret:
                 faces, face_confidences = face_detector.find_face_boxes(img)
                 for face in faces:
-                    marks = landmark_detector.detect_marks(img, face)
+                    marks = landmark_detector.detect_landmarks(img, face)
+                    marks = shape_to_np(marks)
                     # mark_detector.draw_marks(img, marks, color=(0, 255, 0))
                     image_points = np.array([
                         marks[30],  # Nose tip
@@ -177,9 +179,7 @@ class HeadPoseDetector:
 
                     cv2.line(img, p1, p2, (0, 255, 255), 2)
                     cv2.line(img, tuple(x1), tuple(x2), (255, 255, 0), 2)
-                    # for (x, y) in marks:
-                    #     cv2.circle(img, (x, y), 4, (255, 255, 0), -1)
-                    # cv2.putText(img, str(p1), p1, font, 1, (0, 255, 255), 1)
+
                     try:
                         m = (p2[1] - p1[1]) / (p2[0] - p1[0])
                         ang1 = int(math.degrees(math.atan(m)))
@@ -192,7 +192,6 @@ class HeadPoseDetector:
                     except:
                         ang2 = 90
 
-                        # print('div by zero error')
                     if ang1 >= 48:
                         print('Head down')
                         cv2.putText(img, 'Head down', (30, 30), font, 2, (255, 255, 128), 3)

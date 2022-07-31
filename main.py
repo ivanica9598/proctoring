@@ -5,11 +5,12 @@ from landmarks_detector_2 import LandmarksDetector2
 from face_aligner import FaceAligner
 from face_recognizer import FaceRecognizer
 from eyes_tracker import EyesTracker
+from gaze_tracking import GazeTracking
 from mouth_tracker import MouthTracker
 from head_pose_detector import HeadPoseDetector
+from people_counter import PeopleCounter
 from liveness_detector import LivenessDetector
-from people_and_devices_detector import PeopleAndDevicesDetector
-from gaze_tracking import GazeTracking
+
 
 face_detector = FaceDetector()
 landmarks_detector_1 = LandmarksDetector1()
@@ -21,6 +22,7 @@ mouth_tracker = MouthTracker()
 eyes_tracker = EyesTracker()
 gaze = GazeTracking()
 head_pose_detector = HeadPoseDetector()
+people_counter = PeopleCounter()
 
 
 # Test face detector
@@ -41,11 +43,16 @@ head_pose_detector = HeadPoseDetector()
 # Test eyes tracker
 # eyes_tracker.test(face_detector, landmarks_detector)
 
+# Test gaze detector
+# gaze.test(face_detector, landmarks_detector)
+
 # Test head pose detector
 # head_pose_detector.test(face_detector, landmarks_detector)
 
-# Test gaze detector
-# gaze.test(face_detector, landmarks_detector)
+# Test people counter
+# people_counter.test()
+
+
 
 
 def main():
