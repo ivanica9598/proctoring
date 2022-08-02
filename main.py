@@ -29,7 +29,7 @@ people_counter = PeopleCounter()
 # face_detector.test()
 
 # Test landmarks detector
-# landmarks_detector.test(face_detector)
+landmarks_detector.test(face_detector)
 
 # Test face aligner
 # face_aligner.test(face_detector, landmarks_detector)
