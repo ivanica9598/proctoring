@@ -15,7 +15,7 @@ from liveness_detector import LivenessDetector
 face_detector = FaceDetector()
 landmarks_detector_1 = LandmarksDetector1()
 landmarks_detector_2 = LandmarksDetector2()
-landmarks_detector = landmarks_detector_1
+landmarks_detector = landmarks_detector_2
 face_aligner = FaceAligner()
 face_recognizer = FaceRecognizer(face_detector, face_aligner)
 mouth_tracker = MouthTracker()
@@ -26,10 +26,10 @@ people_counter = PeopleCounter()
 
 
 # Test face detector
-# face_detector.test()
+face_detector.test()
 
 # Test landmarks detector
-landmarks_detector.test(face_detector)
+# landmarks_detector.test(face_detector)
 
 # Test face aligner
 # face_aligner.test(face_detector, landmarks_detector)

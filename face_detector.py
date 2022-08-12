@@ -6,19 +6,17 @@ class FaceDetector:
 
     def __init__(self):
         # modelFile = "models/face_detection/res10_300x300_ssd_iter_140000.caffemodel"
-        # configFile = "models/face_detection/deploy.prototxt"
-        # net = cv2.dnn.readNetFromCaffe(configFile, modelFile)
+        # configFile = "models/face_detection/opencv_face_detector.prototxt"
+        # self.net = cv2.dnn.readNetFromCaffe(configFile, modelFile)
+        # Load the network and pass the model's layers and weights as its arguments
         self.net = cv2.dnn.readNetFromTensorflow("models/face_detection/opencv_face_detector_uint8.pb",
                                                  "models/face_detection/opencv_face_detector.pbtxt")
         self.result_face_boxes = None
         self.result_confidences = None
 
     def find_face_boxes(self, image, threshold=0.5):
-        # The shape of an image is accessed by img.shape.It returns a tuple of the number of
-        # rows, columns, and channels( if the image is color):
+        # It returns a tuple of the number of rows, columns, and channels( if the image is color):
         (h, w) = image.shape[:2]
-        # To achieve the best accuracy run the model on BGR images resized to 300x300
-        # applying mean subtraction of values(104, 177, 123) for each blue, green and red channels correspondingly.
         blob = cv2.dnn.blobFromImage(cv2.resize(image, (300, 300)), 1.0, (300, 300), (104.0, 177.0, 123.0))
         self.net.setInput(blob)
         detections = self.net.forward()
@@ -31,6 +29,7 @@ class FaceDetector:
             # 3. Confidence
             # 4 - 7. Left, top, right, bottom
 
+            # The detections.shape[2] is the number of detected objects
             confidence = detections[0, 0, i, 2]
             if confidence > threshold:
                 face_box = detections[0, 0, i, 3:7] * np.array([w, h, w, h])
