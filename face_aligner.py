@@ -4,17 +4,14 @@ from helpers import shape_to_np
 
 
 class FaceAligner:
-    def __init__(self, desiredLeftEye=(0.43, 0.43),
-                 desiredFaceWidth=256, desiredFaceHeight=None):
-
+    def __init__(self, desiredLeftEye=(0.43, 0.43)):
         self.desiredLeftEye = desiredLeftEye
-        self.desiredFaceWidth = desiredFaceWidth
-        self.desiredFaceHeight = desiredFaceHeight
-
-        if self.desiredFaceHeight is None:
-            self.desiredFaceHeight = self.desiredFaceWidth
 
     def align(self, image, marks):
+        (img_h, img_w) = image.shape[:2]
+        desiredFaceWidth = img_w
+        desiredFaceHeight = img_h
+
         marks = shape_to_np(marks)
         leftEyePts = marks[36:42]
         rightEyePts = marks[42:48]
@@ -30,7 +27,7 @@ class FaceAligner:
 
         dist = np.sqrt((dX ** 2) + (dY ** 2))
         desiredDist = (desiredRightEyeX - self.desiredLeftEye[0])
-        desiredDist *= self.desiredFaceWidth
+        desiredDist *= desiredFaceWidth
         scale = desiredDist / dist
 
         eyesCenter = ((leftEyeCenter[0] + rightEyeCenter[0]) // 2,
@@ -40,12 +37,12 @@ class FaceAligner:
 
         M = cv2.getRotationMatrix2D(center, angle, scale)
 
-        tX = self.desiredFaceWidth * 0.5
-        tY = self.desiredFaceHeight * self.desiredLeftEye[1]
+        tX = desiredFaceWidth * 0.5
+        tY = desiredFaceHeight * self.desiredLeftEye[1]
         M[0, 2] += (tX - eyesCenter[0])
         M[1, 2] += (tY - eyesCenter[1])
 
-        (w, h) = (self.desiredFaceWidth, self.desiredFaceHeight)
+        (w, h) = (desiredFaceWidth, desiredFaceHeight)
         output = cv2.warpAffine(image, M, (w, h),
                                 flags=cv2.INTER_CUBIC)
 
@@ -59,6 +56,10 @@ class FaceAligner:
             face_boxes, face_confidences = face_detector.find_face_boxes(img)
             landmarks = landmark_detector.detect_landmarks(img, face_boxes[0])
             new_img = self.align(img, landmarks)
+
+            face_boxes, face_confidences = face_detector.find_face_boxes(new_img)
+            landmarks = landmark_detector.detect_landmarks(new_img, face_boxes[0])
+            landmark_detector.draw_landmarks(new_img)
 
             cv2.imshow('Aligner input', img)
             cv2.imshow('Aligner output', new_img)

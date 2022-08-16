@@ -45,3 +45,17 @@ def move_box(box, offset):
     right_x = box[2] + offset[0]
     bottom_y = box[3] + offset[1]
     return [left_x, top_y, right_x, bottom_y]
+
+
+def rect_to_bb(rect):
+    # take a bounding predicted by dlib and convert it
+    # to the format (x, y, w, h) as we would normally do
+    # with OpenCV
+    x = rect.left()
+    y = rect.top()
+    w = rect.right() - x
+    h = rect.bottom() - y
+    # return a tuple of (x, y, w, h)
+    return (x, y, w, h)
+
+#This function accepts a single argument, rect, which is assumed to be a bounding box rectangle produced by a dlib detector (i.e., the face detector).

@@ -27,8 +27,7 @@ class LandmarksDetector1:
         if facebox[3] > h:
             facebox[3] = h
 
-        face_img = img[facebox[1]: facebox[3],
-                   facebox[0]: facebox[2]]
+        face_img = img[facebox[1]: facebox[3], facebox[0]: facebox[2]]
         face_img = cv2.resize(face_img, (128, 128))
         face_img = cv2.cvtColor(face_img, cv2.COLOR_BGR2RGB)
 

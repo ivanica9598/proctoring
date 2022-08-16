@@ -5,7 +5,7 @@ from helpers import shape_to_np
 
 class LandmarksDetector2:
     def __init__(self):
-        self.predictor = dlib.shape_predictor('models/shape_predictor_68_face_landmarks.dat')
+        self.predictor = dlib.shape_predictor('models/facial_landmarks_detection/shape_predictor_68_face_landmarks.dat')
         self.landmarks = None
 
     def detect_landmarks(self, img, face_box):
