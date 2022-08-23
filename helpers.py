@@ -1,4 +1,5 @@
 import numpy as np
+import cv2
 
 
 def shape_to_np(shape, dtype="int"):
@@ -58,4 +59,20 @@ def rect_to_bb(rect):
     # return a tuple of (x, y, w, h)
     return (x, y, w, h)
 
-#This function accepts a single argument, rect, which is assumed to be a bounding box rectangle produced by a dlib detector (i.e., the face detector).
+
+def draw_box(frame, box, class_name, confidence):
+    # (startX, startY, endX, endY) = box.astype("int")
+    (startX, startY, endX, endY) = box[0], box[1], box[2], box[3]
+    label = "{}: {:.2f}%".format(class_name, confidence * 100)
+    cv2.rectangle(frame, (startX, startY), (endX, endY), (255, 0, 0), 2)
+    y = startY - 15 if startY - 15 > 15 else startY + 15
+    cv2.putText(frame, label, (startX, y), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (255, 0, 0), 2)
+
+
+# This function accepts a single argument, rect, which is assumed to be a bounding box rectangle produced by a dlib
+# detector (i.e., the face detector).
+
+def middle_point(p1, p2):
+    x = int((p1.x + p2.x) / 2)
+    y = int((p1.y + p2.y) / 2)
+    return (x, y)

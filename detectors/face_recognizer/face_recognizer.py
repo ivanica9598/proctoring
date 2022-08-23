@@ -51,7 +51,7 @@ class FaceRecognizer:
             return False
 
     def test(self, face_detector, mark_detector):
-        image_path = "images/face.jpg"
+        image_path = "../../images/face.jpg"
         student_image = cv2.imread(image_path)
 
         face_boxes, face_confidences = face_detector.find_face_boxes(student_image)
@@ -59,22 +59,24 @@ class FaceRecognizer:
             marks = mark_detector.detect_landmarks(student_image, face_boxes[0])
             if self.set_image(student_image, face_boxes[0], marks, True):
                 cap = cv2.VideoCapture(0)
+                counter = 0
                 while True:
                     success, img = cap.read()
-                    face_boxes, face_confidences = face_detector.find_face_boxes(img)
-                    marks = mark_detector.detect_landmarks(img, face_boxes[0])
-                    if len(face_boxes) == 1:
-                        if self.set_image(img, face_boxes[0], marks, False):
-                            if self.compare_faces():
-                                print('valid')
-                                cv2.putText(img, 'valid', (0, 10), cv2.FONT_HERSHEY_SIMPLEX, 0.45, (0, 0, 255), 2)
+                    if counter % 400 == 0:
+                        face_boxes, face_confidences = face_detector.find_face_boxes(img)
+                        marks = mark_detector.detect_landmarks(img, face_boxes[0])
+                        if len(face_boxes) == 1:
+                            if self.set_image(img, face_boxes[0], marks, False):
+                                if self.compare_faces():
+                                    print('valid')
+                                    cv2.putText(img, 'valid', (0, 10), cv2.FONT_HERSHEY_SIMPLEX, 0.45, (0, 0, 255), 2)
+                                else:
+                                    print('fake')
+                                    cv2.putText(img, 'fake', (0, 10), cv2.FONT_HERSHEY_SIMPLEX, 0.45, (0, 0, 255), 2)
                             else:
-                                print('fake')
-                                cv2.putText(img, 'fake', (0, 10), cv2.FONT_HERSHEY_SIMPLEX, 0.45, (0, 0, 255), 2)
+                                print('Input image face not detected')
                         else:
                             print('Input image face not detected')
-                    else:
-                        print('Input image face not detected')
 
                     cv2.imshow('output', img)
                     if cv2.waitKey(1) & 0xFF == ord('q'):
