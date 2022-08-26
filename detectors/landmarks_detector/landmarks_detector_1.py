@@ -2,9 +2,9 @@ import cv2
 import numpy as np
 import tensorflow as tf
 import dlib
-from helpers import shape_to_np
-from helpers import move_box
-from helpers import get_square_box
+from detectors.helpers import shape_to_np
+from detectors.helpers import move_box
+from detectors.helpers import get_square_box
 
 
 class LandmarksDetector1:

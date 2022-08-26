@@ -1,6 +1,6 @@
 import cv2
 import dlib
-from helpers import shape_to_np
+from detectors.helpers import shape_to_np
 
 
 class LandmarksDetector2:

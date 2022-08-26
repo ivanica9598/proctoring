@@ -9,6 +9,7 @@ from detectors.mouth_detector.mouth_tracker import MouthTracker
 from detectors.eyes_detector.gaze_tracking import GazeTracker
 from detectors.liveness_detector.liveness_detector import LivenessDetector
 from detectors.face_recognizer.face_recognizer import FaceRecognizer
+from detectors.face_recognizer.face_recognizer_2 import FaceRecognizer2
 from detectors.head_pose_detector.head_pose_detector import HeadPoseDetector
 
 
@@ -23,7 +24,7 @@ class ProctoringSystem:
         self.mouth_tracker = MouthTracker()
         self.gaze_tracker = GazeTracker()
         self.liveness_detector = LivenessDetector()
-        self.face_recognizer = FaceRecognizer(self.face_detector, self.face_aligner)
+        self.face_recognizer = FaceRecognizer()
         self.head_pose_detector = HeadPoseDetector()
 
     def test_people_detector(self):
@@ -50,7 +51,9 @@ class ProctoringSystem:
         self.liveness_detector.test(self.face_detector, self.landmarks_detector)
 
     def test_face_recognizer(self):
-        self.face_recognizer.test(self.face_detector, self.landmarks_detector)
+        image_path = "images/face.jpg"
+        student_image = cv2.imread(image_path)
+        self.face_recognizer.test(self.face_detector, self.landmarks_detector, self.face_aligner, student_image)
 
     def test_head_pose_detector(self):
         self.head_pose_detector.test(self.face_detector, self.landmarks_detector)
@@ -64,7 +67,7 @@ class ProctoringSystem:
         if len(student_image_face_boxes) == 1:
             student_face_box = student_image_face_boxes[0][0]
             student_landmarks = self.landmarks_detector.detect_landmarks(student_image, student_face_box)
-            if self.face_recognizer.set_image(student_image, student_face_box, student_landmarks, True):
+            if self.face_recognizer.set_image(student_image, student_landmarks, True):
                 self.mouth_tracker.set_image(self.landmarks_detector.get_top_lip_landmarks(),
                                              self.landmarks_detector.get_bottom_lip_landmarks(), True)
                 cap = cv2.VideoCapture(0)
@@ -107,16 +110,15 @@ class ProctoringSystem:
                                 cv2.putText(input_img, eyes_check_result, (90, 60), cv2.FONT_HERSHEY_DUPLEX,
                                             1.6, (147, 58, 31), 2)
 
-
-
-                                # if counter % 60 == 0:
-                                #    if self.face_recognizer.set_image(input_image, input_face_box, input_landmarks, False):
-                                #        if self.face_recognizer.compare_faces():
-                                #            print('Recognized')
-                                #        else:
-                                #            print('Not recognized')
-                                #    else:
-                                #        print('Input image must be recognizable')
+                                if counter % 100 == 0:
+                                    if self.face_recognizer.set_image(new_img, input_landmarks, False):
+                                        if self.face_recognizer.compare_faces():
+                                            cv2.putText(input_img, 'Recognized', (0, 10), cv2.FONT_HERSHEY_SIMPLEX, 0.45, (0, 0, 255), 2)
+                                        else:
+                                            cv2.putText(input_img, 'Not recognized', (0, 10), cv2.FONT_HERSHEY_SIMPLEX, 0.45, (0, 0, 255), 2)
+                                    else:
+                                        print('Input image must be recognizable')
+                                counter = (counter + 1) % 101
                             else:
                                 print('Input image must have one face!')
                         else:
@@ -141,6 +143,6 @@ proctoring_system = ProctoringSystem()
 # proctoring_system.test_mouth_tracker()
 # proctoring_system.test_gaze_detector()
 # proctoring_system.test_liveness_detector()
-proctoring_system.test_face_recognizer()
+# proctoring_system.test_face_recognizer()
 # proctoring_system.test_head_pose_detector()
 # proctoring_system.start()

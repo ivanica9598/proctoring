@@ -1,6 +1,6 @@
 import cv2
 import numpy as np
-from helpers import draw_box
+from detectors.helpers import draw_box
 
 
 class FaceDetector:

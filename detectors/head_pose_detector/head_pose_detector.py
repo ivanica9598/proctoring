@@ -1,217 +1,78 @@
-import cv2
 import numpy as np
-import math
-from helpers import shape_to_np
+import cv2
 
 
 class HeadPoseDetector:
     def __init__(self):
-        self.result = None
+        self.face_detector = None
+        self.landmarks_detector = None
 
-    def get_2d_points(self, img, rotation_vector, translation_vector, camera_matrix, val):
-        """Return the 3D points present as 2D for making annotation box"""
-        point_3d = []
-        dist_coeffs = np.zeros((4, 1))
-        rear_size = val[0]
-        rear_depth = val[1]
-        point_3d.append((-rear_size, -rear_size, rear_depth))
-        point_3d.append((-rear_size, rear_size, rear_depth))
-        point_3d.append((rear_size, rear_size, rear_depth))
-        point_3d.append((rear_size, -rear_size, rear_depth))
-        point_3d.append((-rear_size, -rear_size, rear_depth))
-
-        front_size = val[2]
-        front_depth = val[3]
-        point_3d.append((-front_size, -front_size, front_depth))
-        point_3d.append((-front_size, front_size, front_depth))
-        point_3d.append((front_size, front_size, front_depth))
-        point_3d.append((front_size, -front_size, front_depth))
-        point_3d.append((-front_size, -front_size, front_depth))
-        point_3d = np.array(point_3d, dtype=np.float).reshape(-1, 3)
-
-        # Map to 2d img points
-        (point_2d, _) = cv2.projectPoints(point_3d,
-                                          rotation_vector,
-                                          translation_vector,
-                                          camera_matrix,
-                                          dist_coeffs)
-        point_2d = np.int32(point_2d.reshape(-1, 2))
-        return point_2d
-
-    def draw_annotation_box(self, img, rotation_vector, translation_vector, camera_matrix,
-                            rear_size=300, rear_depth=0, front_size=500, front_depth=400,
-                            color=(255, 255, 0), line_width=2):
-        """
-        Draw a 3D anotation box on the face for head pose estimation
-
-        Parameters
-        ----------
-        img : np.unit8
-            Original Image.
-        rotation_vector : Array of float64
-            Rotation Vector obtained from cv2.solvePnP
-        translation_vector : Array of float64
-            Translation Vector obtained from cv2.solvePnP
-        camera_matrix : Array of float64
-            The camera matrix
-        rear_size : int, optional
-            Size of rear box. The default is 300.
-        rear_depth : int, optional
-            The default is 0.
-        front_size : int, optional
-            Size of front box. The default is 500.
-        front_depth : int, optional
-            Front depth. The default is 400.
-        color : tuple, optional
-            The color with which to draw annotation box. The default is (255, 255, 0).
-        line_width : int, optional
-            line width of lines drawn. The default is 2.
-
-        Returns
-        -------
-        None.
-
-        """
-
-        rear_size = 1
-        rear_depth = 0
-        front_size = img.shape[1]
-        front_depth = front_size * 2
-        val = [rear_size, rear_depth, front_size, front_depth]
-        point_2d = self.get_2d_points(img, rotation_vector, translation_vector, camera_matrix, val)
-        # # Draw all the lines
-        cv2.polylines(img, [point_2d], True, color, line_width, cv2.LINE_AA)
-        cv2.line(img, tuple(point_2d[1]), tuple(
-            point_2d[6]), color, line_width, cv2.LINE_AA)
-        cv2.line(img, tuple(point_2d[2]), tuple(
-            point_2d[7]), color, line_width, cv2.LINE_AA)
-        cv2.line(img, tuple(point_2d[3]), tuple(
-            point_2d[8]), color, line_width, cv2.LINE_AA)
-
-    def head_pose_points(self, img, rotation_vector, translation_vector, camera_matrix):
-        """
-        Get the points to estimate head pose sideways
-
-        Parameters
-        ----------
-        img : np.unit8
-            Original Image.
-        rotation_vector : Array of float64
-            Rotation Vector obtained from cv2.solvePnP
-        translation_vector : Array of float64
-            Translation Vector obtained from cv2.solvePnP
-        camera_matrix : Array of float64
-            The camera matrix
-
-        Returns
-        -------
-        (x, y) : tuple
-            Coordinates of line to estimate head pose
-
-        """
-        rear_size = 1
-        rear_depth = 0
-        front_size = img.shape[1]
-        front_depth = front_size * 2
-        val = [rear_size, rear_depth, front_size, front_depth]
-        point_2d = self.get_2d_points(img, rotation_vector, translation_vector, camera_matrix, val)
-        y = (point_2d[5] + point_2d[8]) // 2
-        x = point_2d[2]
-
-        return (x, y)
-
-    def test(self, face_detector, landmark_detector):
+    def test(self, face_detector, landmarks_detector):
         cap = cv2.VideoCapture(0)
-        ret, img = cap.read()
-        size = img.shape
-        font = cv2.FONT_HERSHEY_SIMPLEX
-        # 3D model points.
-        model_points = np.array([
+        success, img = cap.read()
+        height, width = img.shape[:2]
+
+        face3Dmodel = np.array([
             (0.0, 0.0, 0.0),  # Nose tip
             (0.0, -330.0, -65.0),  # Chin
             (-225.0, 170.0, -135.0),  # Left eye left corner
-            (225.0, 170.0, -135.0),  # Right eye right corne
+            (225.0, 170.0, -135.0),  # Right eye right corner
             (-150.0, -150.0, -125.0),  # Left Mouth corner
             (150.0, -150.0, -125.0)  # Right mouth corner
-        ])
+        ], dtype=np.float64)
 
-        # Camera internals
-        focal_length = size[1]
-        center = (size[1] / 2, size[0] / 2)
+        dist_coeffs = np.zeros((4, 1))  # Assuming no lens distortion
+        focal_length = width
+        center = (width / 2, height / 2)
         camera_matrix = np.array(
             [[focal_length, 0, center[0]],
              [0, focal_length, center[1]],
              [0, 0, 1]], dtype="double"
         )
+
         while True:
-            ret, img = cap.read()
-            if ret:
-                faces, face_confidences = face_detector.find_face_boxes(img)
-                for face in faces:
-                    marks = landmark_detector.detect_landmarks(img, face)
-                    marks = shape_to_np(marks)
-                    # mark_detector.draw_marks(img, marks, color=(0, 255, 0))
-                    image_points = np.array([
-                        marks[30],  # Nose tip
-                        marks[8],  # Chin
-                        marks[36],  # Left eye left corner
-                        marks[45],  # Right eye right corne
-                        marks[48],  # Left Mouth corner
-                        marks[54]  # Right mouth corner
-                    ], dtype="double")
-                    dist_coeffs = np.zeros((4, 1))  # Assuming no lens distortion
-                    (success, rotation_vector, translation_vector) = cv2.solvePnP(model_points, image_points,
-                                                                                  camera_matrix,
-                                                                                  dist_coeffs, flags=cv2.SOLVEPNP_UPNP)
+            success, img = cap.read()
+            (h, w) = img.shape[:2]
+            face_boxes = face_detector.detect_faces(img, h, w)
+            landmarks_detector.detect_landmarks(img, face_boxes[0][0])
+            landmarks = landmarks_detector.get_landmarks_np()
 
-                    # Project a 3D point (0, 0, 1000.0) onto the image plane.
-                    # We use this to draw a line sticking out of the nose
+            image_points = np.array([
+                landmarks[30],  # Nose tip
+                landmarks[8],  # Chin
+                landmarks[36],  # Left eye left corner
+                landmarks[45],  # Right eye right corne
+                landmarks[48],  # Left Mouth corner
+                landmarks[54]  # Right mouth corner
+            ], dtype="double")
 
-                    (nose_end_point2D, jacobian) = cv2.projectPoints(np.array([(0.0, 0.0, 1000.0)]), rotation_vector,
-                                                                     translation_vector, camera_matrix, dist_coeffs)
+            for i in image_points:
+                cv2.circle(img, (int(i[0]), int(i[1])), 4, (255, 0, 0), -1)
 
-                    for p in image_points:
-                        cv2.circle(img, (int(p[0]), int(p[1])), 3, (0, 0, 255), -1)
+            (success, rotation_vector, translation_vector) = cv2.solvePnP(face3Dmodel, image_points, camera_matrix,
+                                                                              dist_coeffs)
 
-                    p1 = (int(image_points[0][0]), int(image_points[0][1]))
-                    p2 = (int(nose_end_point2D[0][0][0]), int(nose_end_point2D[0][0][1]))
-                    x1, x2 = self.head_pose_points(img, rotation_vector, translation_vector, camera_matrix)
+            # Get rotational matrix
+            rmat, jac = cv2.Rodrigues(rotation_vector)
 
-                    cv2.line(img, p1, p2, (0, 255, 255), 2)
-                    cv2.line(img, tuple(x1), tuple(x2), (255, 255, 0), 2)
+            # Get angles
+            angles, mtxR, mtxQ, Qx, Qy, Qz = cv2.RQDecomp3x3(rmat)
 
-                    try:
-                        m = (p2[1] - p1[1]) / (p2[0] - p1[0])
-                        ang1 = int(math.degrees(math.atan(m)))
-                    except:
-                        ang1 = 90
+            x = angles[0]
+            y = angles[1]
+            z = angles[2]
 
-                    try:
-                        m = (x2[1] - x1[1]) / (x2[0] - x1[0])
-                        ang2 = int(math.degrees(math.atan(-1 / m)))
-                    except:
-                        ang2 = 90
-
-                    if ang1 >= 48:
-                        print('Head down')
-                        cv2.putText(img, 'Head down', (30, 30), font, 2, (255, 255, 128), 3)
-                    elif ang1 <= -48:
-                        print('Head up')
-                        cv2.putText(img, 'Head up', (30, 30), font, 2, (255, 255, 128), 3)
-
-                    if ang2 >= 48:
-                        print('Head right')
-                        cv2.putText(img, 'Head right', (90, 30), font, 2, (255, 255, 128), 3)
-                    elif ang2 <= -48:
-                        print('Head left')
-                        cv2.putText(img, 'Head left', (90, 30), font, 2, (255, 255, 128), 3)
-
-                    cv2.putText(img, str(ang1), tuple(p1), font, 2, (128, 255, 255), 3)
-                    cv2.putText(img, str(ang2), tuple(x1), font, 2, (255, 255, 128), 3)
-                cv2.imshow('img', img)
-                if cv2.waitKey(1) & 0xFF == ord('q'):
-                    break
+            if y > 25 or y < -25:
+                text = "Not forward"
+            elif (x > 165) or (0 > x < -176):
+                text = "Forward"
             else:
-                break
-        cv2.destroyAllWindows()
-        cap.release()
+                text = "Not forward"
+
+            cv2.putText(img, text, (20, 50), cv2.FONT_HERSHEY_SIMPLEX, 2, (0, 255, 0), 2)
+            cv2.putText(img, "x: " + str(np.round(x, 2)), (500, 50), cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 0, 255), 2)
+            cv2.putText(img, "y: " + str(np.round(y, 2)), (500, 100), cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 0, 255), 2)
+            cv2.putText(img, "z: " + str(np.round(z, 2)), (500, 150), cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 0, 255), 2)
+
+            cv2.imshow("Image", img)
+            cv2.waitKey(1)
