@@ -25,6 +25,7 @@ class Eye:
         black_frame = np.zeros((height, width), np.uint8)
         mask = np.full((height, width), 255, np.uint8)
         cv2.fillPoly(mask, [self.landmark_points], (0, 0, 0))
+        # mask specifies elements of the output array to be changed
         eye = cv2.bitwise_not(black_frame, original_frame.copy(), mask=mask)
 
         # Cropping
@@ -33,10 +34,9 @@ class Eye:
         max_x = np.max(self.landmark_points[:, 0]) + margin
         min_y = np.min(self.landmark_points[:, 1]) - margin
         max_y = np.max(self.landmark_points[:, 1]) + margin
-
         self.frame = eye[min_y:max_y, min_x:max_x]
-        self.origin = (min_x, min_y)
 
+        self.origin = (min_x, min_y)
         height, width = self.frame.shape[:2]
         self.center = (width / 2, height / 2)
 
@@ -54,8 +54,11 @@ class Eye:
     def image_processing(self, threshold):
         # Returns a frame with a single element representing the iris
         kernel = np.ones((3, 3), np.uint8)
-        new_frame = cv2.bilateralFilter(self.frame, 10, 15, 15)
+        # bilateralFilter can reduce unwanted noise very well while keeping edges fairly sharp
+        new_frame = cv2.bilateralFilter(self.frame, 5, 15, 15)
+        # it erodes away the boundaries of foreground object(Always try to keep foreground in white)
         new_frame = cv2.erode(new_frame, kernel, iterations=3)
+        # If the pixel value is smaller than the threshold, it is set to 0, otherwise it is set to a maximum value
         new_frame = cv2.threshold(new_frame, threshold, 255, cv2.THRESH_BINARY)[1]
 
         return new_frame
@@ -72,7 +75,7 @@ class Eye:
     def detect_iris(self):
         self.iris_frame = self.image_processing(self.threshold)
 
-        contours, _ = cv2.findContours(self.iris_frame, cv2.RETR_TREE, cv2.CHAIN_APPROX_NONE)[-2:]
+        contours, _ = cv2.findContours(self.iris_frame, cv2.RETR_TREE, cv2.CHAIN_APPROX_NONE)[-2:] # last two items in the array
         contours = sorted(contours, key=cv2.contourArea)
 
         try:
@@ -88,7 +91,13 @@ class Eye:
         return x, y
 
     def get_horizontal_percentage(self):
-        return self.pupil_x / (self.center[0] * 2)
+        if self.pupils_detected():
+            return self.pupil_x / (self.center[0] * 2)
+        else:
+            return None
+
+    def pupils_detected(self):
+        return self.pupil_x is not None and self.pupil_y is not None
 
 
 

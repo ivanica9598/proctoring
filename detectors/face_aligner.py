@@ -31,28 +31,8 @@ class FaceAligner:
         M[0, 2] += (tX - eyesCenter[0])
         M[1, 2] += (tY - eyesCenter[1])
 
+        # An affine transformation is transformation which preserves lines and parallelism.
         output = cv2.warpAffine(image, M, (w, h), flags=cv2.INTER_CUBIC)
 
         return output
-
-    def test(self, face_detector, landmark_detector):
-        cap = cv2.VideoCapture(0)
-        while True:
-            success, img = cap.read()
-            if success:
-                (h, w) = img.shape[:2]
-                face_boxes = face_detector.detect_faces(img, h, w)
-                landmark_detector.detect_landmarks(img, face_boxes[0][0])
-
-                new_img = self.align(img, h, w, landmark_detector.get_left_eye_landmarks(),
-                                     landmark_detector.get_right_eye_landmarks())
-
-                (h, w) = new_img.shape[:2]
-                face_boxes = face_detector.detect_faces(new_img, h, w)
-                landmark_detector.detect_landmarks(new_img, face_boxes[0][0])
-                landmark_detector.draw_landmarks(new_img)
-
-                cv2.imshow('Face aligner', new_img)
-            if cv2.waitKey(1) & 0xFF == ord('q'):
-                break
 
