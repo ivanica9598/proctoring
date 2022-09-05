@@ -16,6 +16,7 @@ class FaceDetector:
         detections = self.net.forward()
 
         self.result = []
+        counter = 0
         # The detections.shape[2] is the number of detected objects
         for i in range(0, detections.shape[2]):
             # 1. Batch ID
@@ -27,13 +28,14 @@ class FaceDetector:
             if confidence > threshold:
                 face_box = detections[0, 0, i, 3:7] * np.array([w, h, w, h])
                 (left, top, right, bottom) = face_box.astype("int")
+                counter += 1
                 self.result.append(([left, top, right, bottom], confidence))
 
-        return len(self.result) == 1, self.result
+        return counter == 1, self.result, counter
 
     def draw_faces(self, image):
         if self.result is not None:
             for box in self.result:
-                draw_box(image, box[0], 'face', box[1])
+                draw_box(image, box[0], 'Face', box[1])
 
 

@@ -1,5 +1,7 @@
 import cv2
 
+from database.database import Database
+
 from detectors.people_detector.people_detector import PeopleDetector
 from detectors.face_detector.face_detector import FaceDetector
 from detectors.landmarks_detector.landmarks_detector import LandmarksDetector
@@ -13,6 +15,8 @@ from detectors.face_recognizer.face_recognizer import FaceRecognizer
 
 class ProctoringSystem:
     def __init__(self):
+        self.database = Database()
+
         self.people_detector = PeopleDetector()
         self.face_detector = FaceDetector()
         self.landmarks_detector = LandmarksDetector()
@@ -24,13 +28,15 @@ class ProctoringSystem:
         self.face_recognizer = FaceRecognizer()
 
         self.student_image = None
-        self.set_student_image()
 
-    def set_student_image(self):
-        image_path = "images/face.jpg"
-        self.student_image = cv2.imread(image_path)
+    def add_students(self):
+        self.database.add_user_to_database("12345", "Petar", "Petrovic", "petar@gmail.com", "images/face.jpg")
+        self.database.add_user_to_database("67890", "Miroslav", "Mikic", "miroslav@gmail.com", "images/face.jpg")
+        self.database.add_user_to_database("16704", "Ivana", "Milivojevic", "ivana@gmail.com", "images/face.jpg")
 
-    def validate_student_image(self):
+    def set_student_image(self, student_id_number):
+        user, self.student_image = self.database.load_user(student_id_number)
+        print(user["first_name"] + " " + user["last_name"] + ", " + user["id_number"])
         (h, w) = self.student_image.shape[:2]
         if self.people_detector_validation(self.student_image, h, w):
             valid, face_box = self.face_detector_validation(self.student_image, h, w)
@@ -56,13 +62,13 @@ class ProctoringSystem:
             return False
 
     def face_detector_validation(self, img, h, w):
-        valid, face_boxes = self.face_detector.detect_faces(img, h, w)
+        valid, face_boxes, counter = self.face_detector.detect_faces(img, h, w)
         if valid:
             # self.face_detector.draw_faces(img)
             return True, face_boxes[0][0]
         else:
             self.face_detector.draw_faces(img)
-            self.report_problem(img, 'Detected more or less then one face!')
+            self.report_problem(img, 'Detected ' + str(counter) + ' faces!')
             return False, None
 
     def landmarks_detector_validation(self, img, face_box):
@@ -102,9 +108,9 @@ class ProctoringSystem:
         return valid
 
     def mouth_tracker_validation(self, frame, top_lip, bottom_lip):
-        valid = self.mouth_tracker.compare_faces(top_lip, bottom_lip)
+        valid = self.mouth_tracker.is_open(top_lip, bottom_lip)
         if not valid:
-            self.report_problem(frame, 'Talking')
+            self.report_problem(frame, 'Mouth open')
         return valid
 
     def face_recognizer_validation(self, frame, img, landmarks):
@@ -115,11 +121,10 @@ class ProctoringSystem:
         return valid
 
     def report_problem(self, img, msg):
-        # cv2.imshow('Problem', img)
         cv2.putText(img, msg, (20, 50), cv2.FONT_HERSHEY_SIMPLEX, 2, (0, 255, 0), 2)
 
     def start(self):
-        valid = self.validate_student_image()
+        valid = self.set_student_image("16704")
         if valid:
             cap = cv2.VideoCapture(0)
             while True:
@@ -156,10 +161,11 @@ class ProctoringSystem:
                                                 if valid:
                                                     valid = self.face_recognizer_validation(input_img, new_img, landmarks)
 
-                    cv2.imshow('output', input_img)
+                    cv2.imshow('Test', input_img)
                 if cv2.waitKey(1) & 0xFF == ord('q'):
                     break
 
 
 proctoring_system = ProctoringSystem()
+# proctoring_system.add_students()
 proctoring_system.start()

@@ -1,4 +1,3 @@
-import cv2
 import numpy as np
 
 
@@ -37,7 +36,7 @@ class MouthTracker:
     def input_image_set(self):
         return self.input_dist_outer is not None and self.input_dist_inner is not None
 
-    def compare_faces(self, top_lip, bottom_lip):
+    def is_open(self, top_lip, bottom_lip):
         self.set_image(top_lip, bottom_lip, False)
         if self.initial_image_set() and self.input_image_set():
             dist1 = np.linalg.norm(self.initial_dist_outer - self.input_dist_outer)

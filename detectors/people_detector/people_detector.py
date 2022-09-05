@@ -36,5 +36,5 @@ class PeopleDetector:
         if self.result is not None:
             for box in self.result:
                 (left, top, right, bottom) = box[0].astype("int")
-                draw_box(frame, [left, top, right, bottom], 'person', box[1])
+                draw_box(frame, [left, top, right, bottom], 'Person', box[1])
 

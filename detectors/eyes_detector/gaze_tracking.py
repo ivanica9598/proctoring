@@ -38,10 +38,10 @@ class GazeTracker:
         valid = self.set_new_frame(frame, left_eye_landmarks, right_eye_landmarks)
         if valid:
             if self.horizontal_ratio <= 0.35:
-                return False, "Looking right"
+                return False, "Eyes right"
             elif self.horizontal_ratio >= 0.65:
-                return False, "Looking left"
+                return False, "Eyes left"
             elif 0.35 < self.horizontal_ratio < 0.65:
-                return True, "Looking center"
+                return True, "Eyes center"
         else:
             return True, None
