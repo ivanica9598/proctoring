@@ -1,7 +1,7 @@
 import numpy as np
 
 
-class MouthTracker:
+class MouthDetector:
 
     def __init__(self):
         self.dist_outer = [0]*5
