@@ -32,6 +32,10 @@ class ProctoringSystem:
 
         self.eyes_detector_buffer = []
         self.head_detector_buffer = []
+        self.people_detector_buffer = []
+        self.face_detector_buffer = []
+        self.face_recognizer_buffer = []
+        self.mouth_detector_buffer = []
 
     def add_students(self):
         self.database.add_user_to_database("12345", "Petar", "Petrovic", "petar@gmail.com", "images/face.jpg")
@@ -45,8 +49,7 @@ class ProctoringSystem:
         if self.people_detector_validation(self.student_image, h, w):
             valid, face_box = self.face_detector_validation(self.student_image, h, w)
             if valid:
-                self.face_detector.draw_faces(self.student_image)
-                valid, landmarks, landmarks_np = self.landmarks_detector_validation(self.student_image, face_box)
+                valid, landmarks, landmarks_np = self.landmarks_detector.detect_landmarks(self.student_image, face_box)
                 if valid:
                     top_lip = self.landmarks_detector.get_top_lip_landmarks()
                     bottom_lip = self.landmarks_detector.get_bottom_lip_landmarks()
@@ -56,33 +59,25 @@ class ProctoringSystem:
         return False
 
     def people_detector_validation(self, img, h, w):
-        valid, counter = self.people_detector.detect_people(img, h, w)
-        if valid:
-            # self.people_detector.draw_people(img)
-            return True
-        else:
-            self.people_detector.draw_people(img)
-            self.report_problem(img, 'Detected ' + str(counter) + ' persons!')
-            return False
+        valid = self.people_detector.detect_people(img, h, w)
+        self.people_detector_buffer, problem = self.people_detector.validate(img, valid, self.people_detector_buffer)
+
+        if problem:
+            self.report_problem(img, 'Not one person!')
+
+        return valid
 
     def face_detector_validation(self, img, h, w):
         valid, face_boxes, counter = self.face_detector.detect_faces(img, h, w)
+        self.face_detector_buffer, problem = self.face_detector.validate(img, valid, self.face_detector_buffer)
+
+        if problem:
+            self.report_problem(img, 'Look forward!')
+
         if valid:
-            # self.face_detector.draw_faces(img)
             return True, face_boxes[0][0]
         else:
-            self.face_detector.draw_faces(img)
-            self.report_problem(img, 'Detected ' + str(counter) + ' faces!')
             return False, None
-
-    def landmarks_detector_validation(self, img, face_box):
-        valid, landmarks, landmarks_np = self.landmarks_detector.detect_landmarks(img, face_box)
-        if valid:
-            # self.landmarks_detector.draw_landmarks(img)
-            return valid, landmarks, landmarks_np
-        else:
-            self.report_problem(img, 'Can not detect facial landmarks!')
-            return False, None, None
 
     def head_pose_detector_validation(self, img, h, w, image_points):
         valid = self.head_pose_detector.detect_head_pose(img, h, w, image_points)
@@ -92,11 +87,6 @@ class ProctoringSystem:
             self.report_problem(img, 'Look forward!')
 
         return valid
-
-    def face_aligner_validation(self, img, h, w, left_eye, right_eye):
-        new_img = self.face_aligner.align(img, h, w, left_eye, right_eye)
-        # cv2.imshow('Face aligner', new_img)
-        return new_img
 
     def liveness_detector_validation(self, frame, left_eye, right_eye):
         closed, ear = self.liveness_detector.is_blinking(left_eye, right_eye)
@@ -122,13 +112,15 @@ class ProctoringSystem:
 
     def face_recognizer_validation(self, frame, img, landmarks):
         valid = self.face_recognizer.compare_faces(img, landmarks)
-        # self.face_recognizer.draw_result(frame, valid)
-        if not valid:
-            self.report_problem(frame, 'Not recognized')
+        self.face_recognizer_buffer, problem = self.face_recognizer.validate(frame, valid, self.face_recognizer_buffer)
+
+        if problem:
+            self.report_problem(frame, "Not recognized!")
+
         return valid
 
     def report_problem(self, img, msg):
-        # cv2.putText(img, msg, (20, 50), cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 0, 255), 2)
+        cv2.putText(img, msg, (20, 50), cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 0, 255), 2)
         print(msg)
 
     def add_to_video(self, buffer, out):
@@ -145,6 +137,10 @@ class ProctoringSystem:
             size = (w, h)
             out1 = cv2.VideoWriter('eyes.avi', cv2.VideoWriter_fourcc(*'DIVX'), 8, size)
             out2 = cv2.VideoWriter('head.avi', cv2.VideoWriter_fourcc(*'DIVX'), 8, size)
+            out3 = cv2.VideoWriter('people.avi', cv2.VideoWriter_fourcc(*'DIVX'), 8, size)
+            out4 = cv2.VideoWriter('face.avi', cv2.VideoWriter_fourcc(*'DIVX'), 8, size)
+            out5 = cv2.VideoWriter('recognizer.avi', cv2.VideoWriter_fourcc(*'DIVX'), 8, size)
+            out6 = cv2.VideoWriter('mouth.avi', cv2.VideoWriter_fourcc(*'DIVX'), 8, size)
             while True:
                 success, input_img = cap.read()
                 if success:
@@ -155,20 +151,19 @@ class ProctoringSystem:
                     if self.people_detector_validation(input_img, h, w):
                         valid, face_box = self.face_detector_validation(input_img, h, w)
                         if valid:
-                            # self.face_detector.draw_faces(input_img)
-                            valid, landmarks, landmarks_np = self.landmarks_detector_validation(input_img, face_box)
+                            valid, landmarks, landmarks_np = self.landmarks_detector.detect_landmarks(input_img, face_box)
                             if valid:
                                 image_points = self.landmarks_detector.get_head_pose_landmarks()
                                 valid = self.head_pose_detector_validation(input_img, h, w, image_points)
                                 if valid:
                                     left_eye = self.landmarks_detector.get_left_eye_landmarks()
                                     right_eye = self.landmarks_detector.get_right_eye_landmarks()
-                                    new_img = self.face_aligner_validation(input_img, h, w, left_eye, right_eye)
+                                    new_img = self.face_aligner.align(input_img, h, w, left_eye, right_eye)
 
                                     valid, face_box = self.face_detector_validation(new_img, h, w)
                                     if valid:
-                                        valid, landmarks, landmarks_np = self.landmarks_detector_validation(new_img,
-                                                                                                            face_box)
+                                        valid, landmarks, landmarks_np = self.landmarks_detector.detect_landmarks(
+                                            new_img, face_box)
                                         if valid:
                                             left_eye = self.landmarks_detector.get_left_eye_landmarks()
                                             right_eye = self.landmarks_detector.get_right_eye_landmarks()
@@ -187,8 +182,15 @@ class ProctoringSystem:
                 if cv2.waitKey(1) & 0xFF == ord('q'):
                     break
             # self.add_to_video(self.eyes_detector_buffer, out1)
-            self.add_to_video(self.head_detector_buffer, out2)
+            # self.add_to_video(self.head_detector_buffer, out2)
+            # self.add_to_video(self.people_detector_buffer, out3)
+            # self.add_to_video(self.face_detector_buffer, out4)
+            # self.add_to_video(self.face_recognizer_buffer, out5)
+            self.add_to_video(self.mouth_detector_buffer, out6)
             out1.release()
+            out2.release()
+            out3.release()
+            out4.release()
 
 
 proctoring_system = ProctoringSystem()

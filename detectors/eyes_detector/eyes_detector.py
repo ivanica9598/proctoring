@@ -96,6 +96,5 @@ class EyesDetector:
             self.window_counter = 0
             self.window_looking_aside_counter = 0
             self.window = []
-            self.window = []
 
         return eyes_detector_buffer, problem
