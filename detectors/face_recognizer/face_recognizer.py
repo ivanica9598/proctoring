@@ -32,8 +32,6 @@ class FaceRecognizer:
         if self.counter % 50 == 0:
             if self.set_image(img, landmarks, False):
                 dist = np.linalg.norm(self.initial_image_encodings - self.input_image_encodings)
-                print(dist)
-
                 if dist > 0.5:
                     valid = False
             else:

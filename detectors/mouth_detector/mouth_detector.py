@@ -1,4 +1,5 @@
 import numpy as np
+import cv2
 
 
 class MouthDetector:
@@ -10,6 +11,15 @@ class MouthDetector:
         self.initial_dist_inner = None
         self.input_dist_outer = None
         self.input_dist_inner = None
+
+        self.window = []
+        self.cons_open_buffer = []
+        self.window_counter = 0
+        self.window_open_counter = 0
+        self.cons_open_counter = 0
+        self.window_limit = 30
+        self.cons = False
+        self.calculated = 0
 
     def initialize(self, student_top_lip, student_bottom_lip):
         self.set_image(student_top_lip, student_bottom_lip, True)
@@ -45,4 +55,42 @@ class MouthDetector:
                 return False
             else:
                 return True
+
+    def validate(self, img, valid, mouth_detector_buffer):
+        problem = False
+        if self.cons and not valid:
+            return mouth_detector_buffer, problem
+
+        self.window_counter = self.window_counter + 1
+        self.window.append(img)
+
+        if valid:
+            self.cons_open_counter = 0
+            self.cons = False
+            self.calculated = 0
+        else:
+            self.cons_open_counter = self.cons_open_counter + 1
+            if self.cons_open_counter < 4:
+                self.calculated = self.calculated + 1
+                self.window_open_counter = self.window_open_counter + 1
+
+        if self.window_counter == self.window_limit:
+            if self.cons_open_counter > 0:
+                self.cons = True
+                self.window_counter = self.window_counter - self.cons_open_counter + self.calculated
+                self.window_open_counter = self.window_open_counter - self.cons_open_counter + self.calculated
+            else:
+                self.cons = False
+            if self.window_open_counter > self.window_counter / 4:
+                for i in range(self.window_counter):
+                    cv2.putText(self.window[i], "Speaking", (20, 30), cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 0, 255), 2)
+                    mouth_detector_buffer.append(self.window[i])
+                problem = True
+
+            self.window_counter = 0
+            self.window_open_counter = 0
+            self.calculated = 0
+            self.window = []
+
+        return mouth_detector_buffer, problem
 

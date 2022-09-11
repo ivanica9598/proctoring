@@ -114,6 +114,5 @@ class HeadPoseDetector:
             self.window_counter = 0
             self.window_head_aside_counter = 0
             self.window = []
-            self.window = []
 
         return head_detector_buffer, problem

@@ -2,7 +2,6 @@ import cv2
 import time
 
 from database.database import Database
-
 from detectors.people_detector.people_detector import PeopleDetector
 from detectors.face_detector.face_detector import FaceDetector
 from detectors.landmarks_detector.landmarks_detector import LandmarksDetector
@@ -36,6 +35,7 @@ class ProctoringSystem:
         self.face_detector_buffer = []
         self.face_recognizer_buffer = []
         self.mouth_detector_buffer = []
+        self.liveness_detector_buffer = []
 
     def add_students(self):
         self.database.add_user_to_database("12345", "Petar", "Petrovic", "petar@gmail.com", "images/face.jpg")
@@ -88,12 +88,14 @@ class ProctoringSystem:
 
         return valid
 
-    def liveness_detector_validation(self, frame, left_eye, right_eye):
-        closed, ear = self.liveness_detector.is_blinking(left_eye, right_eye)
-        # self.liveness_detector.draw_result(frame, ear)
-        if not closed:
-            return True
-        return False
+    def liveness_detector_validation(self, frame, left_eye, right_eye, time_passed):
+        valid = self.liveness_detector.is_blinking(frame, left_eye, right_eye)
+        self.liveness_detector_buffer, problem = self.liveness_detector.validate(frame, self.liveness_detector_buffer, time_passed)
+
+        if problem:
+            self.report_problem(frame, "Not live!")
+
+        return valid
 
     def eyes_detector_validation(self, img, frame, left_eye, right_eye):
         valid, msg = self.eyes_detector.check_frame(frame, left_eye, right_eye)
@@ -106,8 +108,9 @@ class ProctoringSystem:
 
     def mouth_detector_validation(self, frame, top_lip, bottom_lip):
         valid = self.mouth_detector.is_open(top_lip, bottom_lip)
-        if not valid:
-            self.report_problem(frame, 'Mouth open')
+        self.mouth_detector_buffer, problem = self.mouth_detector.validate(frame, valid, self.mouth_detector_buffer)
+        if problem:
+            self.report_problem(frame, "Don't speak!")
         return valid
 
     def face_recognizer_validation(self, frame, img, landmarks):
@@ -120,7 +123,7 @@ class ProctoringSystem:
         return valid
 
     def report_problem(self, img, msg):
-        cv2.putText(img, msg, (20, 50), cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 0, 255), 2)
+        # cv2.putText(img, msg, (20, 50), cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 0, 255), 2)
         print(msg)
 
     def add_to_video(self, buffer, out):
@@ -141,6 +144,7 @@ class ProctoringSystem:
             out4 = cv2.VideoWriter('face.avi', cv2.VideoWriter_fourcc(*'DIVX'), 8, size)
             out5 = cv2.VideoWriter('recognizer.avi', cv2.VideoWriter_fourcc(*'DIVX'), 8, size)
             out6 = cv2.VideoWriter('mouth.avi', cv2.VideoWriter_fourcc(*'DIVX'), 8, size)
+            out7 = cv2.VideoWriter('liveness.avi', cv2.VideoWriter_fourcc(*'DIVX'), 8, size)
             while True:
                 success, input_img = cap.read()
                 if success:
@@ -167,7 +171,7 @@ class ProctoringSystem:
                                         if valid:
                                             left_eye = self.landmarks_detector.get_left_eye_landmarks()
                                             right_eye = self.landmarks_detector.get_right_eye_landmarks()
-                                            valid = self.liveness_detector_validation(input_img, left_eye, right_eye)
+                                            valid = self.liveness_detector_validation(input_img, left_eye, right_eye, int(time_passed))
                                             if valid:
                                                 valid = self.eyes_detector_validation(input_img, new_img, left_eye,
                                                                                       right_eye)
@@ -181,16 +185,20 @@ class ProctoringSystem:
                     cv2.imshow('Test', input_img)
                 if cv2.waitKey(1) & 0xFF == ord('q'):
                     break
-            # self.add_to_video(self.eyes_detector_buffer, out1)
-            # self.add_to_video(self.head_detector_buffer, out2)
-            # self.add_to_video(self.people_detector_buffer, out3)
-            # self.add_to_video(self.face_detector_buffer, out4)
-            # self.add_to_video(self.face_recognizer_buffer, out5)
+            self.add_to_video(self.eyes_detector_buffer, out1)
+            self.add_to_video(self.head_detector_buffer, out2)
+            self.add_to_video(self.people_detector_buffer, out3)
+            self.add_to_video(self.face_detector_buffer, out4)
+            self.add_to_video(self.face_recognizer_buffer, out5)
             self.add_to_video(self.mouth_detector_buffer, out6)
+            self.add_to_video(self.liveness_detector_buffer, out7)
             out1.release()
             out2.release()
             out3.release()
             out4.release()
+            out5.release()
+            out6.release()
+            out7.release()
 
 
 proctoring_system = ProctoringSystem()
