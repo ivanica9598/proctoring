@@ -14,11 +14,11 @@ class HeadPoseDetector:
         self.z = None
 
         self.window = []
-        self.head_cons_aside_buffer = []
         self.window_counter = 0
-        self.window_head_aside_counter = 0
-        self.head_cons_aside_counter = 0
         self.window_limit = 30
+        self.window_head_aside_counter = 0
+        self.head_cons_aside_buffer = []
+        self.head_cons_aside_counter = 0
         self.cons = False
 
     def initialize(self, width, height):
@@ -71,6 +71,29 @@ class HeadPoseDetector:
             cv2.putText(img, "y: " + str(np.round(self.y, 2)), (500, 100), cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 0, 255), 2)
             cv2.putText(img, "z: " + str(np.round(self.z, 2)), (500, 150), cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 0, 255), 2)
 
+    def reset(self, head_detector_buffer):
+        problem = False
+        if self.cons:
+            if self.head_cons_aside_counter >= 15:
+                for frame in self.head_cons_aside_buffer:
+                    cv2.putText(frame, "Head aside", (20, 60), cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 0, 255), 2)
+                    head_detector_buffer.append(frame)
+                problem = True
+        elif self.window_counter >= 2/3*self.window_limit and self.window_head_aside_counter >= self.window_counter / 2:
+            for i in range(self.window_counter):
+                cv2.putText(self.window[i], "Head aside", (20, 60), cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 0, 255), 2)
+                head_detector_buffer.append(self.window[i])
+            problem = True
+
+        self.window = []
+        self.window_counter = 0
+        self.window_head_aside_counter = 0
+        self.head_cons_aside_buffer = []
+        self.head_cons_aside_counter = 0
+        self.cons = False
+
+        return head_detector_buffer, problem
+
     def validate(self, img, valid, head_detector_buffer):
         problem = False
 
@@ -81,10 +104,9 @@ class HeadPoseDetector:
         elif self.cons:
             self.cons = False
             if self.head_cons_aside_counter >= 15:
-                for i in range(self.head_cons_aside_counter):
-                    cv2.putText(self.head_cons_aside_buffer[i], "Head aside", (20, 30), cv2.FONT_HERSHEY_SIMPLEX,
-                                1, (0, 0, 255), 2)
-                    head_detector_buffer.append(self.head_cons_aside_buffer[i])
+                for frame in self.head_cons_aside_buffer:
+                    cv2.putText(frame, "Head aside", (20, 60), cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 0, 255), 2)
+                    head_detector_buffer.append(frame)
                 problem = True
 
         self.window_counter = self.window_counter + 1
@@ -107,7 +129,7 @@ class HeadPoseDetector:
                 self.cons = False
             if self.window_head_aside_counter >= self.window_counter / 3:
                 for i in range(self.window_counter):
-                    cv2.putText(self.window[i], "Head aside", (20, 30), cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 0, 255), 2)
+                    cv2.putText(self.window[i], "Head aside", (20, 60), cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 0, 255), 2)
                     head_detector_buffer.append(self.window[i])
                 problem = True
 

@@ -13,9 +13,11 @@ class LivenessDetector:
         self.total = 0
 
         self.window = []
-        self.window_counter = 0
+        self.timer = -1
+        self.last_val = None
 
-    def eye_aspect_ratio(self, eye):
+    @staticmethod
+    def eye_aspect_ratio(eye):
         A = dist.euclidean(eye[1], eye[5])
         B = dist.euclidean(eye[2], eye[4])
         C = dist.euclidean(eye[0], eye[3])
@@ -48,19 +50,29 @@ class LivenessDetector:
         cv2.putText(frame, "Ear: {}".format(ear), (10, 90),
                     cv2.FONT_HERSHEY_SIMPLEX, 0.7, (0, 0, 255), 2)
 
+    def reset(self):
+        self.total = 0
+        self.window = []
+        self.timer = -1
+        self.last_val = None
+
     def validate(self, img, liveness_detector_buffer, time_passed):
         problem = False
 
-        self.window_counter = self.window_counter + 1
+        timer = time_passed % 30
+        if self.last_val != timer:
+            self.last_val = timer
+            self.timer = self.timer + 1
+
         self.window.append(img)
-
-        if time_passed % 30 == 0:
+        if self.timer == 29:
+            self.timer = 0
             if self.total > 12 or self.total < 6:
-                for i in range(self.window_counter):
-                    cv2.putText(self.window[i], "Not live", (20, 30), cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 0, 255), 2)
-                    liveness_detector_buffer.append(self.window[i])
+                for frame in self.window:
+                    cv2.putText(frame, "Not live face", (20, 60), cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 0, 255), 2)
+                    liveness_detector_buffer.append(frame)
+                problem = True
 
-            self.window_counter = 0
             self.total = 0
             self.window = []
 

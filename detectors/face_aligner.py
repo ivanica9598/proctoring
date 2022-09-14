@@ -31,7 +31,6 @@ class FaceAligner:
         M[0, 2] += (tX - eyesCenter[0])
         M[1, 2] += (tY - eyesCenter[1])
 
-        # An affine transformation is transformation which preserves lines and parallelism.
         output = cv2.warpAffine(image, M, (w, h), flags=cv2.INTER_CUBIC)
 
         return output

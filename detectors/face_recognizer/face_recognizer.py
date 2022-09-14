@@ -39,11 +39,28 @@ class FaceRecognizer:
         self.counter = (self.counter + 1) % 50
         return valid
 
-    def draw_result(self, frame, valid):
+    @staticmethod
+    def draw_result(frame, valid):
         if valid:
             cv2.putText(frame, 'Recognized', (0, 10), cv2.FONT_HERSHEY_SIMPLEX, 0.45, (0, 0, 255), 2)
         else:
             cv2.putText(frame, 'Not recognized', (0, 10), cv2.FONT_HERSHEY_SIMPLEX, 0.45, (0, 0, 255), 2)
+
+    def reset(self, face_recognizer_buffer):
+        problem = False
+
+        if self.window_not_recognized:
+            for frame in self.window:
+                cv2.putText(frame, "Not recognized!", (20, 60), cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 0, 255), )
+                face_recognizer_buffer.append(frame)
+            problem = True
+
+        self.window = []
+        self.window_counter = 0
+        self.window_not_recognized = False
+        self.cons = False
+
+        return face_recognizer_buffer, problem
 
     def validate(self, img, valid, face_recognizer_buffer):
         problem = False
@@ -55,10 +72,9 @@ class FaceRecognizer:
             self.window_not_recognized = True
         if self.window_counter == self.window_limit:
             if self.window_not_recognized:
-                for i in range(self.window_counter):
-                    cv2.putText(self.window[i], "Not recognized!", (20, 30), cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 0, 255),
-                                2)
-                    face_recognizer_buffer.append(self.window[i])
+                for frame in self.window:
+                    cv2.putText(frame, "Not recognized!", (20, 60), cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 0, 255), )
+                    face_recognizer_buffer.append(frame)
                 problem = True
 
             self.window_counter = 0

@@ -11,11 +11,11 @@ class EyesDetector:
         self.horizontal_ratio = None
 
         self.window = []
-        self.looking_cons_aside_buffer = []
         self.window_counter = 0
-        self.window_looking_aside_counter = 0
-        self.looking_cons_aside_counter = 0
         self.window_limit = 30
+        self.window_looking_aside_counter = 0
+        self.looking_cons_aside_buffer = []
+        self.looking_cons_aside_counter = 0
         self.cons = False
 
     def set_new_frame(self, frame, left_eye_landmarks, right_eye_landmarks):
@@ -38,8 +38,6 @@ class EyesDetector:
         cv2.line(frame, (x_right - 5, y_right), (x_right + 5, y_right), color)
         cv2.line(frame, (x_right, y_right - 5), (x_right, y_right + 5), color)
 
-        cv2.imshow("Gaze tracker", frame)
-
     def check_frame(self, frame, left_eye_landmarks, right_eye_landmarks):
         valid = self.set_new_frame(frame, left_eye_landmarks, right_eye_landmarks)
         if valid:
@@ -53,6 +51,29 @@ class EyesDetector:
         else:
             return True, None
 
+    def reset(self, eyes_detector_buffer):
+        problem = False
+        if self.cons:
+            if self.looking_cons_aside_counter >= 15:
+                for frame in self.looking_cons_aside_buffer:
+                    cv2.putText(frame, "Looking aside", (20, 60), cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 0, 255), 2)
+                    eyes_detector_buffer.append(frame)
+                problem = True
+        elif self.window_counter >= 2/3*self.window_limit and self.window_looking_aside_counter >= self.window_counter / 2:
+            for i in range(self.window_counter):
+                cv2.putText(self.window[i], "Looking aside", (20, 60), cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 0, 255), 2)
+                eyes_detector_buffer.append(self.window[i])
+            problem = True
+
+        self.window = []
+        self.window_counter = 0
+        self.window_looking_aside_counter = 0
+        self.looking_cons_aside_buffer = []
+        self.looking_cons_aside_counter = 0
+        self.cons = False
+
+        return eyes_detector_buffer, problem
+
     def validate(self, img, valid, eyes_detector_buffer):
         problem = False
 
@@ -63,10 +84,9 @@ class EyesDetector:
         elif self.cons:
             self.cons = False
             if self.looking_cons_aside_counter >= 15:
-                for i in range(self.looking_cons_aside_counter):
-                    cv2.putText(self.looking_cons_aside_buffer[i], "Looking aside", (20, 30), cv2.FONT_HERSHEY_SIMPLEX,
-                                1, (0, 0, 255), 2)
-                    eyes_detector_buffer.append(self.looking_cons_aside_buffer[i])
+                for frame in self.looking_cons_aside_buffer:
+                    cv2.putText(frame, "Looking aside", (20, 60), cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 0, 255), 2)
+                    eyes_detector_buffer.append(frame)
                 problem = True
 
         self.window_counter = self.window_counter + 1
@@ -89,7 +109,7 @@ class EyesDetector:
                 self.cons = False
             if self.window_looking_aside_counter >= self.window_counter / 3:
                 for i in range(self.window_counter):
-                    cv2.putText(self.window[i], "Looking aside", (20, 30), cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 0, 255), 2)
+                    cv2.putText(self.window[i], "Looking aside", (20, 60), cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 0, 255), 2)
                     eyes_detector_buffer.append(self.window[i])
                 problem = True
 

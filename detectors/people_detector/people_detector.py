@@ -15,11 +15,11 @@ class PeopleDetector:
         self.result = None
 
         self.window = []
-        self.people_cons_buffer = []
         self.window_counter = 0
-        self.window_people_counter = 0
-        self.people_cons_counter = 0
         self.window_limit = 30
+        self.window_people_counter = 0
+        self.people_cons_buffer = []
+        self.people_cons_counter = 0
         self.cons = False
 
     def detect_people(self, frame, h, w):
@@ -28,18 +28,16 @@ class PeopleDetector:
         detections = self.neural_network.forward()
 
         self.result = []
-        counter = 0
         for i in np.arange(0, detections.shape[2]):
             confidence = detections[0, 0, i, 2]
-            if confidence > 0.3:
+            if confidence > 0.5:
                 idx = int(detections[0, 0, i, 1])
                 class_name = self.classes[idx]
                 if class_name == "person":
-                    counter += 1
                     self.result.append((detections[0, 0, i, 3:7] * np.array([w, h, w, h]), confidence))
-        valid = counter == 1
-        if not valid:
-            self.draw_people(frame)
+        valid = len(self.result) == 1
+        # if not valid:
+        #    self.draw_people(frame)
         return valid
 
     def draw_people(self, frame):
@@ -61,10 +59,9 @@ class PeopleDetector:
         elif self.cons:
             self.cons = False
             if self.people_cons_counter >= 15:
-                for i in range(self.people_cons_counter):
-                    cv2.putText(self.people_cons_buffer[i], "Not 1 person!", (20, 30), cv2.FONT_HERSHEY_SIMPLEX,
-                                1, (0, 0, 255), 2)
-                    people_detector_buffer.append(self.people_cons_buffer[i])
+                for frame in self.people_cons_buffer:
+                    cv2.putText(frame, "Not 1 person!", (20, 60), cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 0, 255), 2)
+                    people_detector_buffer.append(frame)
                 problem = True
 
         self.window_counter = self.window_counter + 1
@@ -87,7 +84,7 @@ class PeopleDetector:
                 self.cons = False
             if self.window_people_counter >= self.window_counter / 3:
                 for i in range(self.window_counter):
-                    cv2.putText(self.window[i], "Not 1 person!", (20, 30), cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 0, 255), 2)
+                    cv2.putText(self.window[i], "Not 1 person!", (20, 60), cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 0, 255), 2)
                     people_detector_buffer.append(self.window[i])
                 problem = True
 

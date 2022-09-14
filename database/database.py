@@ -34,8 +34,8 @@ class Database:
         user = self.fs.collection("users").where("id_number", "==", id_number).get()
         user = user[0].to_dict()
 
-        blob = self.bucket.get_blob(user["image"])  # blob
-        arr = np.frombuffer(blob.download_as_string(), np.uint8)  # array of bytes
+        blob = self.bucket.get_blob(user["image"])
+        arr = np.frombuffer(blob.download_as_string(), np.uint8)
         img = cv2.imdecode(arr, cv2.COLOR_BGR2BGR555)
 
         return user, img
