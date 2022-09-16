@@ -61,7 +61,7 @@ class MouthDetector:
 
         if self.window_counter >= 2/3*self.window_limit and self.window_open_counter > self.window_counter / 3:
             for i in range(self.window_counter):
-                cv2.putText(self.window[i], "Speaking", (20, 60), cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 0, 255), 2)
+                self.window[i].msg += "Speaking!"
                 mouth_detector_buffer.append(self.window[i])
             problem = True
 
@@ -75,13 +75,13 @@ class MouthDetector:
 
         return mouth_detector_buffer, problem
 
-    def validate(self, img, valid, mouth_detector_buffer):
+    def validate(self, input_frame, valid, mouth_detector_buffer):
         problem = False
         if self.cons and not valid:
             return mouth_detector_buffer, problem
 
         self.window_counter = self.window_counter + 1
-        self.window.append(img)
+        self.window.append(input_frame)
 
         if valid:
             self.cons_open_counter = 0
@@ -102,7 +102,7 @@ class MouthDetector:
                 self.cons = False
             if self.window_open_counter > self.window_counter / 4:
                 for i in range(self.window_counter):
-                    cv2.putText(self.window[i], "Speaking", (20, 60), cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 0, 255), 2)
+                    self.window[i].msg += "Speaking!"
                     mouth_detector_buffer.append(self.window[i])
                 problem = True
 

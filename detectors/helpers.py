@@ -16,3 +16,4 @@ def draw_box(frame, box, class_name, confidence):
     cv2.rectangle(frame, (startX, startY), (endX, endY), (255, 0, 0), 2)
     y = startY - 15 if startY - 15 > 15 else startY + 15
     cv2.putText(frame, label, (startX, y), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (255, 0, 0), 2)
+

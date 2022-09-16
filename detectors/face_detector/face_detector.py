@@ -49,12 +49,12 @@ class FaceDetector:
         if self.cons:
             if self.face_cons_counter >= 15:
                 for frame in self.face_cons_buffer:
-                    cv2.putText(frame, "Not 1 face!", (20, 60), cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 0, 255), 2)
+                    frame.msg += "Not 1 face!"
                     face_detector_buffer.append(frame)
                 problem = True
         elif self.window_counter >= 2/3*self.window_limit and self.window_face_counter >= self.window_counter / 2:
             for i in range(self.window_counter):
-                cv2.putText(self.window[i], "Not 1 face!", (20, 60), cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 0, 255), 2)
+                self.window[i].msg += "Not 1 face!"
                 face_detector_buffer.append(self.window[i])
             problem = True
 
@@ -67,33 +67,33 @@ class FaceDetector:
 
         return face_detector_buffer, problem
 
-    def validate(self, img, valid, face_detector_buffer):
+    def validate(self, input_frame, valid, face_detector_buffer):
         if not valid:
-            self.draw_faces(img)
+            self.draw_faces(input_frame.img)
 
         problem = False
 
         if self.cons and not valid:
             self.face_cons_counter = self.face_cons_counter + 1
-            self.face_cons_buffer.append(img)
+            self.face_cons_buffer.append(input_frame)
             return face_detector_buffer, problem
         elif self.cons:
             self.cons = False
             if self.face_cons_counter >= 15:
                 for frame in self.face_cons_buffer:
-                    cv2.putText(frame, "Not 1 face!", (20, 60), cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 0, 255), 2)
+                    frame.msg += "Not 1 face!"
                     face_detector_buffer.append(frame)
                 problem = True
 
         self.window_counter = self.window_counter + 1
-        self.window.append(img)
+        self.window.append(input_frame)
 
         if valid:
             self.face_cons_buffer = []
             self.face_cons_counter = 0
         else:
             self.face_cons_counter = self.face_cons_counter + 1
-            self.face_cons_buffer.append(img)
+            self.face_cons_buffer.append(input_frame)
             self.window_face_counter = self.window_face_counter + 1
 
         if self.window_counter == self.window_limit:
@@ -105,7 +105,7 @@ class FaceDetector:
                 self.cons = False
             if self.window_face_counter >= self.window_counter / 3:
                 for i in range(self.window_counter):
-                    cv2.putText(self.window[i], "Not 1 face!", (20, 60), cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 0, 255), 2)
+                    self.window[i].msg += "Not 1 face!"
                     face_detector_buffer.append(self.window[i])
                 problem = True
 

@@ -46,33 +46,33 @@ class PeopleDetector:
                 (left, top, right, bottom) = box[0].astype("int")
                 draw_box(frame, [left, top, right, bottom], 'Person', box[1])
 
-    def validate(self, img, valid, people_detector_buffer):
+    def validate(self, input_frame, valid, people_detector_buffer):
         if not valid:
-            self.draw_people(img)
+            self.draw_people(input_frame.img)
 
         problem = False
 
         if self.cons and not valid:
             self.people_cons_counter = self.people_cons_counter + 1
-            self.people_cons_buffer.append(img)
+            self.people_cons_buffer.append(input_frame)
             return people_detector_buffer, problem
         elif self.cons:
             self.cons = False
             if self.people_cons_counter >= 15:
                 for frame in self.people_cons_buffer:
-                    cv2.putText(frame, "Not 1 person!", (20, 60), cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 0, 255), 2)
+                    frame.msg += "Not 1 person!"
                     people_detector_buffer.append(frame)
                 problem = True
 
         self.window_counter = self.window_counter + 1
-        self.window.append(img)
+        self.window.append(input_frame)
 
         if valid:
             self.people_cons_buffer = []
             self.people_cons_counter = 0
         else:
             self.people_cons_counter = self.people_cons_counter + 1
-            self.people_cons_buffer.append(img)
+            self.people_cons_buffer.append(input_frame)
             self.window_people_counter = self.window_people_counter + 1
 
         if self.window_counter == self.window_limit:
@@ -84,7 +84,7 @@ class PeopleDetector:
                 self.cons = False
             if self.window_people_counter >= self.window_counter / 3:
                 for i in range(self.window_counter):
-                    cv2.putText(self.window[i], "Not 1 person!", (20, 60), cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 0, 255), 2)
+                    self.window[i].msg += "Not 1 person!"
                     people_detector_buffer.append(self.window[i])
                 problem = True
 

@@ -56,7 +56,7 @@ class LivenessDetector:
         self.timer = -1
         self.last_val = None
 
-    def validate(self, img, liveness_detector_buffer, time_passed):
+    def validate(self, input_frame, liveness_detector_buffer, time_passed):
         problem = False
 
         timer = time_passed % 30
@@ -64,12 +64,12 @@ class LivenessDetector:
             self.last_val = timer
             self.timer = self.timer + 1
 
-        self.window.append(img)
+        self.window.append(input_frame)
         if self.timer == 29:
             self.timer = 0
             if self.total > 12 or self.total < 6:
                 for frame in self.window:
-                    cv2.putText(frame, "Not live face", (20, 60), cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 0, 255), 2)
+                    frame.msg += "Not live face!"
                     liveness_detector_buffer.append(frame)
                 problem = True
 
