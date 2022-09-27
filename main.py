@@ -1,6 +1,5 @@
 import cv2
 import time
-import numpy as np
 
 from database.database import Database
 from detectors.people_detector.people_detector import PeopleDetector
