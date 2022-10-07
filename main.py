@@ -34,6 +34,7 @@ class ProctoringSystem:
         self.mouth_detector = MouthDetector()
         self.face_recognizer = FaceRecognizer()
 
+        self.student = None
         self.student_image = None
 
         self.people_detector_buffer = []
@@ -55,8 +56,8 @@ class ProctoringSystem:
         self.database.add_user_to_database("16704", "Ivana", "Milivojevic", "ivana@gmail.com", "images/face1.jpg")
 
     def set_student_image(self, student_id_number):
-        user, self.student_image = self.database.load_user(student_id_number)
-        print(user["first_name"] + " " + user["last_name"] + ", " + user["id_number"])
+        self.student, self.student_image = self.database.load_user(student_id_number)
+        print(self.student["first_name"] + " " + self.student["last_name"] + ", " + self.student["id_number"])
         (h, w) = self.student_image.shape[:2]
         img = Frame(self.student_image, -1)
         if self.people_detector_validation(img, h, w):
@@ -150,8 +151,9 @@ class ProctoringSystem:
                 cv2.putText(frame.img, frame.msg, (20, 60), cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 0, 255), 2)
                 out.write(frame.img)
             out.release()
+            self.database.add_report(self.student["id"], file_name)
 
-    def start(self):
+    def start(self, time_limit):
         valid = self.set_student_image("16704")
         if valid:
             cap = cv2.VideoCapture(0)
@@ -159,10 +161,12 @@ class ProctoringSystem:
             (h, w) = input_img.shape[:2]
             size = (w, h)
             start = time.time()
+            end = False
             while True:
                 success, input_img = cap.read()
                 if success:
                     time_passed = round(time.time() - start, 2)
+                    end = time_passed > time_limit
                     cv2.putText(input_img, "Time: " + str(time_passed), (20, 30), cv2.FONT_HERSHEY_SIMPLEX, 1,
                                 (0, 255, 0), 2)
                     self.frame_counter = self.frame_counter + 1
@@ -249,7 +253,7 @@ class ProctoringSystem:
                         cv2.putText(input_img, self.warning, (20, 60), cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 0, 255), 2)
                         self.warning = ""
                     cv2.imshow('Test', input_img)
-                if cv2.waitKey(1) & 0xFF == ord('q'):
+                if cv2.waitKey(1) & 0xFF == ord('q') or end:
                     break
 
             # new_arr = np.concatenate((self.people_detector_buffer, self.face_detector_buffer, self.head_detector_buffer, self.eyes_detector_buffer, self.liveness_detector_buffer, self.mouth_detector_buffer, self.face_recognizer_buffer), axis=0)
@@ -261,4 +265,4 @@ class ProctoringSystem:
 
 proctoring_system = ProctoringSystem()
 # proctoring_system.add_students()
-proctoring_system.start()
+proctoring_system.start(40)

@@ -1,5 +1,5 @@
-from scipy.spatial import distance as dist
 import cv2
+import numpy as np
 
 EYE_AR_THRESH = 0.25
 EYE_AR_CONSEC_FRAMES = 3
@@ -18,9 +18,9 @@ class LivenessDetector:
 
     @staticmethod
     def eye_aspect_ratio(eye):
-        A = dist.euclidean(eye[1], eye[5])
-        B = dist.euclidean(eye[2], eye[4])
-        C = dist.euclidean(eye[0], eye[3])
+        A = np.linalg.norm(eye[1] - eye[5])
+        B = np.linalg.norm(eye[2] - eye[4])
+        C = np.linalg.norm(eye[0] - eye[3])
 
         ear = (A + B) / (2.0 * C)
 

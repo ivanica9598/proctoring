@@ -14,24 +14,26 @@ class Database:
         self.bucket = storage.bucket()
 
     def add_user_to_database(self, id_number, first_name, last_name, email, image_path):
+        user = self.fs.collection('students').document()
         data = {
+            "id": user.id,
             "id_number": id_number,
             "first_name": first_name,
             "last_name": last_name,
             "email": email
         }
+
         # Add user to database
-        user = self.fs.collection('users').document()
-        self.fs.collection('users').document(user.id).set(data)
+        self.fs.collection('students').document(user.id).set(data)
         # Add user img to storage
-        storage_img_path = 'images/profile_images/' + str(user.id) + "_" + os.path.basename(image_path)
+        storage_img_path = 'students/' + str(user.id) + "/profile_img"
         blob = self.bucket.blob(storage_img_path)
         blob.upload_from_filename(image_path)
         # Put url in database
         user.update({"image": storage_img_path})
 
     def load_user(self, id_number):
-        user = self.fs.collection("users").where("id_number", "==", id_number).get()
+        user = self.fs.collection("students").where("id_number", "==", id_number).get()
         user = user[0].to_dict()
 
         blob = self.bucket.get_blob(user["image"])
@@ -39,3 +41,9 @@ class Database:
         img = cv2.imdecode(arr, cv2.COLOR_BGR2BGR555)
 
         return user, img
+
+    def add_report(self, id_number, video_path):
+        # Add video report to storage
+        storage_video_path = 'students/' + str(id_number) + "/" + os.path.basename(video_path)
+        blob = self.bucket.blob(storage_video_path)
+        blob.upload_from_filename(video_path)
