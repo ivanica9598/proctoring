@@ -16,6 +16,7 @@ class LandmarksDetector:
             marks = self.predictor(img, rect)
             self.landmarks = marks
             self.landmarks_np = shape_to_np(self.landmarks)
+            # self.draw_landmarks(img)
             return True, self.landmarks, self.landmarks_np
         except:
             return False, None, None

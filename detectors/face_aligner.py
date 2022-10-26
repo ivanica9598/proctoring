@@ -7,6 +7,7 @@ class FaceAligner:
         self.desiredLeftEye = desiredLeftEye
 
     def align(self, image, h, w, leftEyePts, rightEyePts):
+        # compute the center of mass for each eye
         leftEyeCenter = leftEyePts.mean(axis=0).astype("int")
         rightEyeCenter = rightEyePts.mean(axis=0).astype("int")
 
@@ -32,6 +33,5 @@ class FaceAligner:
         M[1, 2] += (tY - eyesCenter[1])
 
         output = cv2.warpAffine(image, M, (w, h), flags=cv2.INTER_CUBIC)
-
+        # cv2.imshow('Aligned', output)
         return output
-

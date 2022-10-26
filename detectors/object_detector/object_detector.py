@@ -11,6 +11,7 @@ class ObjectDetector:
             self.classes = f.read().split('\n')
 
         self.result = None
+        self.window_limit = 30
 
         self.person_window = []
         self.person_window_counter = 0
@@ -18,8 +19,6 @@ class ObjectDetector:
         self.cellphone_window_counter = 0
         self.laptop_window = []
         self.laptop_window_counter = 0
-
-        self.window_limit = 30
 
         self.window_person_counter = 0
         self.person_cons_buffer = []
@@ -51,16 +50,19 @@ class ObjectDetector:
             if score > 0.6:
                 class_id = int(detections[0, 0, i, 1])
                 class_name = self.classes[class_id]
-                if class_name == "person" or class_name == "cellphone" or class_name == "laptop":
+                if class_name == "person" or class_name == "cellphone":
                     self.result.append((detections[0, 0, i, 3:7] * np.array([w, h, w, h]), score, class_name))
                     if class_name == "person":
                         person_cnt = person_cnt + 1
                     if class_name == "cellphone":
                         cellphone_cnt = cellphone_cnt + 1
-                    if class_name == "laptop":
-                        laptop_cnt = laptop_cnt + 1
+                    # if class_name == "laptop":
+                    #    laptop_cnt = laptop_cnt + 1
 
-        # self.draw(frame)
+        # self.draw(frame, "person")
+        # self.draw(frame, "cellphone")
+        # self.draw(frame, "laptop")
+
         return person_cnt == 1, cellphone_cnt == 0, laptop_cnt == 0
 
     def draw(self, frame, class_name):
@@ -69,6 +71,8 @@ class ObjectDetector:
                 if box[2] == class_name:
                     (left, top, right, bottom) = box[0].astype("int")
                     draw_box(frame, [left, top, right, bottom], box[2], box[1])
+                    # cv2.putText(frame, "Cellphone detected!", (20, 70), cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 0, 255), 2)
+                    # cv2.putText(frame, "Not 1 person!", (20, 70), cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 0, 255), 2)
 
     def validate_person(self, input_frame, person_valid, person_detector_buffer):
         if not person_valid:

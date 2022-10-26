@@ -22,7 +22,6 @@ class EyesDetector:
         frame = cv2.cvtColor(self.frame, cv2.COLOR_BGR2GRAY)
         self.eye_left = Eye(frame, left_eye_landmarks)
         self.eye_right = Eye(frame, right_eye_landmarks)
-
         if self.eye_left.pupils_detected() and self.eye_right.pupils_detected():
             self.horizontal_ratio = (self.eye_left.get_horizontal_percentage() +
                                      self.eye_right.get_horizontal_percentage()) / 2
@@ -41,6 +40,8 @@ class EyesDetector:
         valid = self.set_new_frame(frame, left_eye_landmarks, right_eye_landmarks)
         if valid:
             # self.draw_pupils(frame)
+            # cv2.putText(frame, "Looking aside!", (20, 50), cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 0, 255), 2)
+            # cv2.imshow('Eyes', frame)
             if self.horizontal_ratio <= 0.35:
                 return False, "Eyes right"
             elif self.horizontal_ratio >= 0.65:

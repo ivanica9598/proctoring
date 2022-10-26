@@ -67,7 +67,7 @@ class LivenessDetector:
         self.window.append(input_frame)
         if self.timer == 29:
             self.timer = 0
-            if self.total > 12 or self.total < 6:
+            if self.total > 14 or self.total < 4:
                 for frame in self.window:
                     frame.msg += "Not live face!"
                     liveness_detector_buffer.append(frame)

@@ -25,8 +25,10 @@ class Eye:
         black_frame = np.zeros((height, width), np.uint8)
         mask = np.full((height, width), 255, np.uint8)
         cv2.fillPoly(mask, [self.landmark_points], (0, 0, 0))
+        # cv2.imshow('Mask', mask)
         # mask specifies elements of the output array to be changed
         eye = cv2.bitwise_not(black_frame, original_frame.copy(), mask=mask)
+        # cv2.imshow('Eye', eye)
 
         # Cropping
         margin = 5
@@ -35,6 +37,7 @@ class Eye:
         min_y = np.min(self.landmark_points[:, 1]) - margin
         max_y = np.max(self.landmark_points[:, 1]) + margin
         self.frame = eye[min_y:max_y, min_x:max_x]
+        # cv2.imshow('Frame', self.frame)
 
         self.origin = (min_x, min_y)
         height, width = self.frame.shape[:2]
@@ -60,7 +63,10 @@ class Eye:
         new_frame = cv2.erode(new_frame, kernel, iterations=3)
         # If the pixel value is smaller than the threshold, it is set to 0, otherwise it is set to a maximum value
         new_frame = cv2.threshold(new_frame, threshold, 255, cv2.THRESH_BINARY)[1]
-
+        # new_frame = cv2.erode(new_frame, None, iterations=2) додато
+        # new_frame = cv2.dilate(new_frame, None, iterations=4) додато
+        # new_frame = cv2.medianBlur(new_frame, 3) додато
+        # cv2.imshow('New frame', new_frame)
         return new_frame
 
     @staticmethod
@@ -74,7 +80,11 @@ class Eye:
 
     def detect_iris(self):
         self.iris_frame = self.image_processing(self.threshold)
-
+        # The eyeballs are segmented out and we can utilize cv2.findContours for finding them.
+        # In OpenCV’s cv2.findContours() method, the object to find should be in white and the background is black.
+        # all we need to do is now find the two largest contours and those should be our eyeballs
+        # Find the largest contours on both sides of the midpoint bynsorting it with cv2.contourArea.
+        # We can utilize cv2.moments to find the centers of the eyeballs.
         contours, _ = cv2.findContours(self.iris_frame, cv2.RETR_TREE, cv2.CHAIN_APPROX_NONE)[-2:] # last two items in the array
         contours = sorted(contours, key=cv2.contourArea)
 

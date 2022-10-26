@@ -48,7 +48,6 @@ class HeadPoseDetector:
                                                                       self.dist_coeffs)
 
         rmat, jac = cv2.Rodrigues(rotation_vector)
-
         angles, mtxR, mtxQ, Qx, Qy, Qz = cv2.RQDecomp3x3(rmat)
 
         self.x = angles[0]
@@ -63,6 +62,10 @@ class HeadPoseDetector:
             result = False
 
         # self.draw_result(img)
+        # if result:
+        #    cv2.putText(img, "Head forward!", (20, 70), cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 0, 255), 2)
+        #else:
+        #    cv2.putText(img, "Head aside!", (20, 70), cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 0, 255), 2)
         return result
 
     def draw_result(self, img):
