@@ -5,9 +5,7 @@ import math
 from database.database import Database
 from detectors.object_detector.object_detector import ObjectDetector
 from detectors.face_detector.face_detector import FaceDetector
-from detectors.landmarks_detector.landmarks_detector import LandmarksDetector
 from detectors.head_pose_detector.head_pose_detector import HeadPoseDetector
-from detectors.face_aligner import FaceAligner
 from detectors.liveness_detector.liveness_detector import LivenessDetector
 from detectors.eyes_detector.eyes_detector import EyesDetector
 from detectors.mouth_detector.mouth_detector import MouthDetector
@@ -27,9 +25,7 @@ class ProctoringSystem:
 
         self.object_detector = ObjectDetector()
         self.face_detector = FaceDetector()
-        self.landmarks_detector = LandmarksDetector()
         self.head_pose_detector = HeadPoseDetector()
-        self.face_aligner = FaceAligner()
         self.liveness_detector = LivenessDetector()
         self.eyes_detector = EyesDetector()
         self.mouth_detector = MouthDetector()
@@ -40,7 +36,6 @@ class ProctoringSystem:
 
         self.object_detector_person_buffer = []
         self.object_detector_cellphone_buffer = []
-        self.object_detector_laptop_buffer = []
         self.face_detector_buffer = []
         self.head_detector_buffer = []
         self.liveness_detector_buffer = []
@@ -63,35 +58,27 @@ class ProctoringSystem:
         print(self.student["first_name"] + " " + self.student["last_name"] + ", " + self.student["id_number"])
         (h, w) = self.student_image.shape[:2]
         img = Frame(self.student_image, -1)
-        if self.object_detector_validation(img, h, w):
-            valid, face_box = self.face_detector_validation(img, h, w)
-            if valid:
-                valid, landmarks, landmarks_np = self.landmarks_detector.detect_landmarks(self.student_image, face_box)
-                if valid:
-                    top_lip = self.landmarks_detector.get_top_lip_landmarks()
-                    bottom_lip = self.landmarks_detector.get_bottom_lip_landmarks()
-                    self.mouth_detector.initialize(top_lip, bottom_lip)
-                    valid = self.face_recognizer.set_image(self.student_image, landmarks, True)
-                    return valid
+        valid, landmarks, landmarks_np = self.face_detector_validation(img, h, w)
+        if valid:
+            top_lip = self.face_detector.get_top_lip_landmarks()
+            bottom_lip = self.face_detector.get_bottom_lip_landmarks()
+            self.mouth_detector.initialize(top_lip, bottom_lip)
+            valid = self.face_recognizer.set_image(self.student_image, landmarks, True)
+            return valid
         return False
 
     def object_detector_validation(self, input_frame, h, w):
-        person_valid, cellphone_valid, laptop_valid = self.object_detector.detect(input_frame.img, h, w)
+        person_valid, cellphone_valid = self.object_detector.detect(input_frame.img, h, w)
         self.object_detector_person_buffer, person_problem = self.object_detector.validate_person(input_frame,
                                                                                                   person_valid,
                                                                                                   self.object_detector_person_buffer)
         self.object_detector_cellphone_buffer, cellphone_problem = self.object_detector.validate_cellphone(input_frame,
                                                                                                            cellphone_valid,
                                                                                                            self.object_detector_cellphone_buffer)
-        self.object_detector_laptop_buffer, laptop_problem = self.object_detector.validate_laptop(input_frame,
-                                                                                                  laptop_valid,
-                                                                                                  self.object_detector_laptop_buffer)
         if person_problem:
             self.warning += 'Not 1 person!'
         if cellphone_problem:
             self.warning += 'Cellphone detected!'
-        if laptop_problem:
-            self.warning += 'Laptop detected!'
 
         return person_valid
 
@@ -101,11 +88,12 @@ class ProctoringSystem:
 
         if problem:
             self.warning += 'Not 1 face!'
-
+        landmarks = None
+        landmarks_np = None
         if valid:
-            return True, face_boxes[0][0]
-        else:
-            return False, None
+            valid, landmarks, landmarks_np = self.face_detector.detect_landmarks(input_frame.img,
+                                                                                 face_boxes[0][0])
+        return valid, landmarks, landmarks_np
 
     def head_pose_detector_validation(self, input_frame, h, w, image_points):
         valid = self.head_pose_detector.detect_head_pose(input_frame.img, h, w, image_points)
@@ -181,7 +169,7 @@ class ProctoringSystem:
                     time_passed = round(time.time() - start, 1)
                     end = time_passed > time_limit
                     if not end:
-                        time_showing = round(time_limit-time_passed)
+                        time_showing = round(time_limit - time_passed)
                         mins = math.trunc(time_showing / 60)
                         sec = round(time_showing % 60)
                         if mins < 10:
@@ -192,73 +180,63 @@ class ProctoringSystem:
                             str_sec = "0" + str(sec)
                         else:
                             str_sec = str(sec)
-                        cv2.putText(input_img, "Time: " + str_mins + ":" + str_sec, (20, 30), cv2.FONT_HERSHEY_SIMPLEX, 1,
+                        cv2.putText(input_img, "Time: " + str_mins + ":" + str_sec, (20, 30), cv2.FONT_HERSHEY_SIMPLEX,
+                                    1,
                                     (0, 255, 0), 2)
                         self.frame_counter = self.frame_counter + 1
                         input_frame = Frame(input_img.copy(), self.frame_counter)
                         self.main_buffer.append(input_frame)
                         if self.object_detector_validation(input_frame, h, w):
-                            valid, face_box = self.face_detector_validation(input_frame, h, w)
+                            valid, landmarks, landmarks_np = self.face_detector_validation(input_frame, h, w)
                             if valid:
-                                valid, landmarks, landmarks_np = self.landmarks_detector.detect_landmarks(input_img,
-                                                                                                          face_box)
+                                image_points = self.face_detector.get_head_pose_landmarks()
+                                valid = self.head_pose_detector_validation(input_frame, h, w, image_points)
                                 if valid:
-                                    image_points = self.landmarks_detector.get_head_pose_landmarks()
-                                    valid = self.head_pose_detector_validation(input_frame, h, w, image_points)
+                                    left_eye = self.face_detector.get_left_eye_landmarks()
+                                    right_eye = self.face_detector.get_right_eye_landmarks()
+                                    new_img = self.face_detector.align(input_img, h, w, left_eye, right_eye)
+                                    valid, face_boxes = self.face_detector.detect_faces(new_img, h, w)
                                     if valid:
-                                        left_eye = self.landmarks_detector.get_left_eye_landmarks()
-                                        right_eye = self.landmarks_detector.get_right_eye_landmarks()
-                                        new_img = self.face_aligner.align(input_img, h, w, left_eye, right_eye)
-
-                                        valid, face_boxes = self.face_detector.detect_faces(new_img, h, w)
-                                        if valid:
-                                            face_box = face_boxes[0][0]
-                                            valid, landmarks, landmarks_np = self.landmarks_detector.detect_landmarks(
+                                        face_box = face_boxes[0][0]
+                                        valid, landmarks, landmarks_np = self.face_detector.detect_landmarks(
                                                 new_img, face_box)
-                                            if valid:
-                                                left_eye = self.landmarks_detector.get_left_eye_landmarks()
-                                                right_eye = self.landmarks_detector.get_right_eye_landmarks()
-                                                valid = self.liveness_detector_validation(input_frame, left_eye, right_eye,
+                                        if valid:
+                                            left_eye = self.face_detector.get_left_eye_landmarks()
+                                            right_eye = self.face_detector.get_right_eye_landmarks()
+                                            valid = self.liveness_detector_validation(input_frame, left_eye,
+                                                                                          right_eye,
                                                                                           int(time_passed))
-                                                if valid:
-                                                    self.eyes_detector_validation(input_frame, new_img, left_eye, right_eye)
-                                                top_lip = self.landmarks_detector.get_top_lip_landmarks()
-                                                bottom_lip = self.landmarks_detector.get_bottom_lip_landmarks()
-                                                valid = self.mouth_detector_validation(input_frame, top_lip, bottom_lip)
-                                                if valid:
-                                                    self.face_recognizer_validation(input_frame, new_img, landmarks)
-                                                else:
-                                                    self.face_recognizer_buffer, _ = self.face_recognizer.reset(
-                                                        self.face_recognizer_buffer)
-                                            else:
-                                                self.liveness_detector.reset()
-                                                self.eyes_detector_buffer, _ = self.eyes_detector.reset(
-                                                    self.eyes_detector_buffer)
-                                                self.mouth_detector_buffer, _ = self.mouth_detector.reset(
-                                                    self.mouth_detector_buffer)
-                                                self.face_recognizer_buffer, _ = self.face_recognizer.reset(
-                                                    self.face_recognizer_buffer)
+                                            if valid:
+                                                self.eyes_detector_validation(input_frame, new_img, left_eye,
+                                                                                  right_eye)
+                                            top_lip = self.face_detector.get_top_lip_landmarks()
+                                            bottom_lip = self.face_detector.get_bottom_lip_landmarks()
+                                            self.mouth_detector_validation(input_frame, top_lip, bottom_lip)
+                                            self.face_recognizer_validation(input_frame, new_img, landmarks)
                                         else:
                                             self.liveness_detector.reset()
                                             self.eyes_detector_buffer, _ = self.eyes_detector.reset(
-                                                self.eyes_detector_buffer)
+                                                    self.eyes_detector_buffer)
                                             self.mouth_detector_buffer, _ = self.mouth_detector.reset(
-                                                self.mouth_detector_buffer)
+                                                    self.mouth_detector_buffer)
                                             self.face_recognizer_buffer, _ = self.face_recognizer.reset(
-                                                self.face_recognizer_buffer)
+                                                    self.face_recognizer_buffer)
                                     else:
                                         self.liveness_detector.reset()
-                                        self.eyes_detector_buffer, _ = self.eyes_detector.reset(self.eyes_detector_buffer)
+                                        self.eyes_detector_buffer, _ = self.eyes_detector.reset(
+                                                self.eyes_detector_buffer)
                                         self.mouth_detector_buffer, _ = self.mouth_detector.reset(
-                                            self.mouth_detector_buffer)
+                                                self.mouth_detector_buffer)
                                         self.face_recognizer_buffer, _ = self.face_recognizer.reset(
-                                            self.face_recognizer_buffer)
+                                                self.face_recognizer_buffer)
                                 else:
-                                    self.head_detector_buffer, _ = self.head_pose_detector.reset(self.head_detector_buffer)
                                     self.liveness_detector.reset()
-                                    self.eyes_detector_buffer, _ = self.eyes_detector.reset(self.eyes_detector_buffer)
-                                    self.mouth_detector_buffer, _ = self.mouth_detector.reset(self.mouth_detector_buffer)
-                                    self.face_recognizer_buffer, _ = self.face_recognizer.reset(self.face_recognizer_buffer)
+                                    self.eyes_detector_buffer, _ = self.eyes_detector.reset(
+                                            self.eyes_detector_buffer)
+                                    self.mouth_detector_buffer, _ = self.mouth_detector.reset(
+                                            self.mouth_detector_buffer)
+                                    self.face_recognizer_buffer, _ = self.face_recognizer.reset(
+                                            self.face_recognizer_buffer)
                             else:
                                 self.head_detector_buffer, _ = self.head_pose_detector.reset(self.head_detector_buffer)
                                 self.liveness_detector.reset()
@@ -282,14 +260,14 @@ class ProctoringSystem:
                 if cv2.waitKey(1) & 0xFF == ord('q') or end:
                     break
 
-            new_arr = list(
+            self.report_buffer = list(
                 set().union(self.object_detector_person_buffer, self.object_detector_cellphone_buffer,
-                            self.object_detector_laptop_buffer, self.face_detector_buffer, self.head_detector_buffer,
+                            self.face_detector_buffer, self.head_detector_buffer,
                             self.eyes_detector_buffer, self.liveness_detector_buffer, self.mouth_detector_buffer,
                             self.face_recognizer_buffer))
 
             self.main_report(size, self.main_buffer, "full_video.avi", 10)
-            self.main_report(size, new_arr, "full_report.avi", 10)
+            self.main_report(size, self.report_buffer, "full_report.avi", 10)
 
 
 proctoring_system = ProctoringSystem()

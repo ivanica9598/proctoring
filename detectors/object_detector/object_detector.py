@@ -63,7 +63,7 @@ class ObjectDetector:
         # self.draw(frame, "cellphone")
         # self.draw(frame, "laptop")
 
-        return person_cnt == 1, cellphone_cnt == 0, laptop_cnt == 0
+        return person_cnt == 1, cellphone_cnt == 0
 
     def draw(self, frame, class_name):
         if self.result is not None:
