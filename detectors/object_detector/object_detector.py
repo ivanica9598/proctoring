@@ -17,8 +17,6 @@ class ObjectDetector:
         self.person_window_counter = 0
         self.cellphone_window = []
         self.cellphone_window_counter = 0
-        self.laptop_window = []
-        self.laptop_window_counter = 0
 
         self.window_person_counter = 0
         self.person_cons_buffer = []
@@ -30,11 +28,6 @@ class ObjectDetector:
         self.cellphone_cons_counter = 0
         self.cellphone_cons = False
 
-        self.window_laptop_counter = 0
-        self.laptop_cons_buffer = []
-        self.laptop_cons_counter = 0
-        self.laptop_cons = False
-
     def detect(self, frame, h, w):
         blob = cv2.dnn.blobFromImage(cv2.resize(frame, (300, 300)), size=(300, 300), mean=(104, 117, 123), swapRB=True)
         self.neural_network.setInput(blob)
@@ -42,7 +35,6 @@ class ObjectDetector:
 
         person_cnt = 0
         cellphone_cnt = 0
-        laptop_cnt = 0
         self.result = []
 
         for i in np.arange(0, detections.shape[2]):
@@ -56,12 +48,9 @@ class ObjectDetector:
                         person_cnt = person_cnt + 1
                     if class_name == "cellphone":
                         cellphone_cnt = cellphone_cnt + 1
-                    # if class_name == "laptop":
-                    #    laptop_cnt = laptop_cnt + 1
 
         # self.draw(frame, "person")
         # self.draw(frame, "cellphone")
-        # self.draw(frame, "laptop")
 
         return person_cnt == 1, cellphone_cnt == 0
 
@@ -171,52 +160,3 @@ class ObjectDetector:
             self.cellphone_window = []
 
         return cellphone_detector_buffer, problem
-
-    def validate_laptop(self, input_frame, laptop_valid, laptop_detector_buffer):
-        if not laptop_valid:
-            self.draw(input_frame.img, "laptop")
-
-        problem = False
-
-        if self.laptop_cons and not laptop_valid:
-            self.laptop_cons_counter = self.laptop_cons_counter + 1
-            self.laptop_cons_buffer.append(input_frame)
-            return laptop_detector_buffer, problem
-        elif self.laptop_cons:
-            self.laptop_cons = False
-            if self.laptop_cons_counter >= 15:
-                for frame in self.laptop_cons_buffer:
-                    frame.msg += "Laptop detected!"
-                    laptop_detector_buffer.append(frame)
-                problem = True
-
-        self.laptop_window_counter = self.laptop_window_counter + 1
-        self.laptop_window.append(input_frame)
-
-        if laptop_valid:
-            self.laptop_cons_buffer = []
-            self.laptop_cons_counter = 0
-        else:
-            self.laptop_cons_counter = self.laptop_cons_counter + 1
-            self.laptop_cons_buffer.append(input_frame)
-            self.window_laptop_counter = self.window_laptop_counter + 1
-
-        if self.laptop_window_counter == self.window_limit:
-            if self.laptop_cons_counter > 0:
-                self.laptop_cons = True
-                self.laptop_window_counter = self.laptop_window_counter - self.laptop_cons_counter
-                self.window_laptop_counter = self.window_laptop_counter - self.laptop_cons_counter
-            else:
-                self.laptop_cons = False
-
-            if self.window_laptop_counter >= self.laptop_window_counter / 3:
-                for i in range(self.laptop_window_counter):
-                    self.laptop_window[i].msg += "Laptop detected!"
-                    laptop_detector_buffer.append(self.laptop_window[i])
-                problem = True
-
-            self.laptop_window_counter = 0
-            self.window_laptop_counter = 0
-            self.laptop_window = []
-
-        return laptop_detector_buffer, problem

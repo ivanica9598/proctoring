@@ -8,7 +8,7 @@ from detectors.face_detector.face_detector import FaceDetector
 from detectors.head_pose_detector.head_pose_detector import HeadPoseDetector
 from detectors.liveness_detector.liveness_detector import LivenessDetector
 from detectors.eyes_detector.eyes_detector import EyesDetector
-from detectors.mouth_detector.mouth_detector import MouthDetector
+from detectors.speech_detector.speech_detector import SpeechDetector
 from detectors.face_recognizer.face_recognizer import FaceRecognizer
 
 
@@ -28,7 +28,7 @@ class ProctoringSystem:
         self.head_pose_detector = HeadPoseDetector()
         self.liveness_detector = LivenessDetector()
         self.eyes_detector = EyesDetector()
-        self.mouth_detector = MouthDetector()
+        self.speech_detector = SpeechDetector()
         self.face_recognizer = FaceRecognizer()
 
         self.student = None
@@ -40,7 +40,7 @@ class ProctoringSystem:
         self.head_detector_buffer = []
         self.liveness_detector_buffer = []
         self.eyes_detector_buffer = []
-        self.mouth_detector_buffer = []
+        self.speech_detector_buffer = []
         self.face_recognizer_buffer = []
 
         self.report_buffer = []
@@ -62,7 +62,7 @@ class ProctoringSystem:
         if valid:
             top_lip = self.face_detector.get_top_lip_landmarks()
             bottom_lip = self.face_detector.get_bottom_lip_landmarks()
-            self.mouth_detector.initialize(top_lip, bottom_lip)
+            self.speech_detector.initialize(top_lip, bottom_lip)
             valid = self.face_recognizer.set_image(self.student_image, landmarks, True)
             return valid
         return False
@@ -125,10 +125,10 @@ class ProctoringSystem:
 
         return valid
 
-    def mouth_detector_validation(self, input_frame, top_lip, bottom_lip):
-        valid = self.mouth_detector.is_open(top_lip, bottom_lip)
-        self.mouth_detector_buffer, problem = self.mouth_detector.validate(input_frame, valid,
-                                                                           self.mouth_detector_buffer)
+    def speech_detector_validation(self, input_frame, top_lip, bottom_lip):
+        valid = self.speech_detector.is_open(top_lip, bottom_lip)
+        self.speech_detector_buffer, problem = self.speech_detector.validate(input_frame, valid,
+                                                                             self.speech_detector_buffer)
 
         if problem:
             self.warning += "Don't speak!"
@@ -194,61 +194,50 @@ class ProctoringSystem:
                                 if valid:
                                     left_eye = self.face_detector.get_left_eye_landmarks()
                                     right_eye = self.face_detector.get_right_eye_landmarks()
-                                    new_img = self.face_detector.align(input_img, h, w, left_eye, right_eye)
-                                    valid, face_boxes = self.face_detector.detect_faces(new_img, h, w)
+                                    valid, new_img, landmarks, landmarks_np = self.face_detector.align(input_img, h, w,
+                                                                                                       left_eye,
+                                                                                                       right_eye)
                                     if valid:
-                                        face_box = face_boxes[0][0]
-                                        valid, landmarks, landmarks_np = self.face_detector.detect_landmarks(
-                                                new_img, face_box)
+                                        left_eye = self.face_detector.get_left_eye_landmarks()
+                                        right_eye = self.face_detector.get_right_eye_landmarks()
+                                        valid = self.liveness_detector_validation(input_frame, left_eye,
+                                                                                  right_eye,
+                                                                                  int(time_passed))
                                         if valid:
-                                            left_eye = self.face_detector.get_left_eye_landmarks()
-                                            right_eye = self.face_detector.get_right_eye_landmarks()
-                                            valid = self.liveness_detector_validation(input_frame, left_eye,
-                                                                                          right_eye,
-                                                                                          int(time_passed))
-                                            if valid:
-                                                self.eyes_detector_validation(input_frame, new_img, left_eye,
-                                                                                  right_eye)
-                                            top_lip = self.face_detector.get_top_lip_landmarks()
-                                            bottom_lip = self.face_detector.get_bottom_lip_landmarks()
-                                            self.mouth_detector_validation(input_frame, top_lip, bottom_lip)
-                                            self.face_recognizer_validation(input_frame, new_img, landmarks)
-                                        else:
-                                            self.liveness_detector.reset()
-                                            self.eyes_detector_buffer, _ = self.eyes_detector.reset(
-                                                    self.eyes_detector_buffer)
-                                            self.mouth_detector_buffer, _ = self.mouth_detector.reset(
-                                                    self.mouth_detector_buffer)
-                                            self.face_recognizer_buffer, _ = self.face_recognizer.reset(
-                                                    self.face_recognizer_buffer)
+                                            self.eyes_detector_validation(input_frame, new_img, left_eye,
+                                                                          right_eye)
+                                        top_lip = self.face_detector.get_top_lip_landmarks()
+                                        bottom_lip = self.face_detector.get_bottom_lip_landmarks()
+                                        self.speech_detector_validation(input_frame, top_lip, bottom_lip)
+                                        self.face_recognizer_validation(input_frame, new_img, landmarks)
                                     else:
                                         self.liveness_detector.reset()
                                         self.eyes_detector_buffer, _ = self.eyes_detector.reset(
-                                                self.eyes_detector_buffer)
-                                        self.mouth_detector_buffer, _ = self.mouth_detector.reset(
-                                                self.mouth_detector_buffer)
+                                            self.eyes_detector_buffer)
+                                        self.speech_detector_buffer, _ = self.speech_detector.reset(
+                                            self.speech_detector_buffer)
                                         self.face_recognizer_buffer, _ = self.face_recognizer.reset(
-                                                self.face_recognizer_buffer)
+                                            self.face_recognizer_buffer)
                                 else:
                                     self.liveness_detector.reset()
                                     self.eyes_detector_buffer, _ = self.eyes_detector.reset(
-                                            self.eyes_detector_buffer)
-                                    self.mouth_detector_buffer, _ = self.mouth_detector.reset(
-                                            self.mouth_detector_buffer)
+                                        self.eyes_detector_buffer)
+                                    self.speech_detector_buffer, _ = self.speech_detector.reset(
+                                        self.speech_detector_buffer)
                                     self.face_recognizer_buffer, _ = self.face_recognizer.reset(
-                                            self.face_recognizer_buffer)
+                                        self.face_recognizer_buffer)
                             else:
                                 self.head_detector_buffer, _ = self.head_pose_detector.reset(self.head_detector_buffer)
                                 self.liveness_detector.reset()
                                 self.eyes_detector_buffer, _ = self.eyes_detector.reset(self.eyes_detector_buffer)
-                                self.mouth_detector_buffer, _ = self.mouth_detector.reset(self.mouth_detector_buffer)
+                                self.speech_detector_buffer, _ = self.speech_detector.reset(self.speech_detector_buffer)
                                 self.face_recognizer_buffer, _ = self.face_recognizer.reset(self.face_recognizer_buffer)
                         else:
                             self.face_detector_buffer, _ = self.face_detector.reset(self.face_detector_buffer)
                             self.head_detector_buffer, _ = self.head_pose_detector.reset(self.head_detector_buffer)
                             self.liveness_detector.reset()
                             self.eyes_detector_buffer, _ = self.eyes_detector.reset(self.eyes_detector_buffer)
-                            self.mouth_detector_buffer, _ = self.mouth_detector.reset(self.mouth_detector_buffer)
+                            self.speech_detector_buffer, _ = self.speech_detector.reset(self.speech_detector_buffer)
                             self.face_recognizer_buffer, _ = self.face_recognizer.reset(self.face_recognizer_buffer)
 
                         if self.warning != "":
@@ -263,7 +252,7 @@ class ProctoringSystem:
             self.report_buffer = list(
                 set().union(self.object_detector_person_buffer, self.object_detector_cellphone_buffer,
                             self.face_detector_buffer, self.head_detector_buffer,
-                            self.eyes_detector_buffer, self.liveness_detector_buffer, self.mouth_detector_buffer,
+                            self.eyes_detector_buffer, self.liveness_detector_buffer, self.speech_detector_buffer,
                             self.face_recognizer_buffer))
 
             self.main_report(size, self.main_buffer, "full_video.avi", 10)

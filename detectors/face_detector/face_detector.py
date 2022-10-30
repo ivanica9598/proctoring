@@ -71,7 +71,15 @@ class FaceDetector:
 
         output = cv2.warpAffine(image, M, (w, h), flags=cv2.INTER_CUBIC)
         # cv2.imshow('Aligned', output)
-        return output
+
+        valid, face_boxes = self.detect_faces(output, h, w)
+        landmarks = None
+        landmarks_np = None
+        if valid:
+            face_box = face_boxes[0][0]
+            valid, landmarks, landmarks_np = self.detect_landmarks(output, face_box)
+
+        return valid, output, landmarks, landmarks_np
 
     def draw_faces(self, image):
         if self.result is not None:

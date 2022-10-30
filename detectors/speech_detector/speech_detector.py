@@ -2,7 +2,7 @@ import numpy as np
 import cv2
 
 
-class MouthDetector:
+class SpeechDetector:
 
     def __init__(self):
         self.dist_outer = [0]*5
