@@ -17,6 +17,8 @@ class FaceRecognizer:
         self.window_limit = 50
         self.cons = False
 
+        self.invalid_buffer = []
+
     def set_image(self, image, marks, initial):
         encodings = []
         if not initial:
@@ -46,13 +48,13 @@ class FaceRecognizer:
         else:
             cv2.putText(frame, 'Not recognized', (0, 10), cv2.FONT_HERSHEY_SIMPLEX, 0.45, (0, 0, 255), 2)
 
-    def reset(self, face_recognizer_buffer):
+    def reset(self):
         problem = False
 
         if self.window_not_recognized:
             for frame in self.window:
                 frame.msg += "Not recognized!"
-                face_recognizer_buffer.append(frame)
+                self.invalid_buffer.append(frame)
             problem = True
 
         self.window = []
@@ -60,9 +62,9 @@ class FaceRecognizer:
         self.window_not_recognized = False
         self.cons = False
 
-        return face_recognizer_buffer, problem
+        return problem
 
-    def validate(self, input_frame, valid, face_recognizer_buffer):
+    def validate(self, input_frame, valid):
         problem = False
 
         self.window_counter = self.window_counter + 1
@@ -74,11 +76,14 @@ class FaceRecognizer:
             if self.window_not_recognized:
                 for frame in self.window:
                     frame.msg += "Not recognized!"
-                    face_recognizer_buffer.append(frame)
+                    self.invalid_buffer.append(frame)
                 problem = True
 
             self.window_counter = 0
             self.window_not_recognized = False
             self.window = []
 
-        return face_recognizer_buffer, problem
+        return problem
+
+    def get_invalid_buffer(self):
+        return self.invalid_buffer

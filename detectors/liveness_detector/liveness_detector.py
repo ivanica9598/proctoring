@@ -16,6 +16,8 @@ class LivenessDetector:
         self.timer = -1
         self.last_val = None
 
+        self.invalid_buffer = []
+
     @staticmethod
     def eye_aspect_ratio(eye):
         A = np.linalg.norm(eye[1] - eye[5])
@@ -56,7 +58,7 @@ class LivenessDetector:
         self.timer = -1
         self.last_val = None
 
-    def validate(self, input_frame, liveness_detector_buffer, time_passed):
+    def validate(self, input_frame, time_passed):
         problem = False
 
         timer = time_passed % 30
@@ -70,10 +72,13 @@ class LivenessDetector:
             if self.total > 14 or self.total < 4:
                 for frame in self.window:
                     frame.msg += "Not live face!"
-                    liveness_detector_buffer.append(frame)
+                    self.invalid_buffer.append(frame)
                 problem = True
 
             self.total = 0
             self.window = []
 
-        return liveness_detector_buffer, problem
+        return problem
+
+    def get_invalid_buffer(self):
+        return self.invalid_buffer

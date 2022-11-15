@@ -5,8 +5,8 @@ import cv2
 class SpeechDetector:
 
     def __init__(self):
-        self.dist_outer = [0]*5
-        self.dist_inner = [0]*3
+        self.dist_outer = [0] * 5
+        self.dist_inner = [0] * 3
         self.initial_dist_outer = None
         self.initial_dist_inner = None
         self.input_dist_outer = None
@@ -21,6 +21,8 @@ class SpeechDetector:
         self.cons = False
         self.calculated = 0
 
+        self.invalid_buffer = []
+
     def initialize(self, student_top_lip, student_bottom_lip):
         self.set_image(student_top_lip, student_bottom_lip, True)
 
@@ -28,7 +30,7 @@ class SpeechDetector:
         for i in range(0, 5):
             self.dist_outer[i] = top_lip_landmarks[i][1] - bottom_lip_landmarks[i][1]
         for i in range(0, 3):
-            self.dist_inner[i] = top_lip_landmarks[i+5][1] - bottom_lip_landmarks[i+5][1]
+            self.dist_inner[i] = top_lip_landmarks[i + 5][1] - bottom_lip_landmarks[i + 5][1]
 
         x_dist_outer = top_lip_landmarks[8][0] - top_lip_landmarks[9][0]
         x_dist_inner = top_lip_landmarks[10][0] - top_lip_landmarks[11][0]
@@ -56,13 +58,13 @@ class SpeechDetector:
             else:
                 return True
 
-    def reset(self, mouth_detector_buffer):
+    def reset(self):
         problem = False
 
-        if self.window_counter >= 2/3*self.window_limit and self.window_open_counter > self.window_counter / 3:
+        if self.window_counter >= 2 / 3 * self.window_limit and self.window_open_counter > self.window_counter / 3:
             for i in range(self.window_counter):
                 self.window[i].msg += "Speaking!"
-                mouth_detector_buffer.append(self.window[i])
+                self.invalid_buffer.append(self.window[i])
             problem = True
 
         self.window = []
@@ -73,12 +75,12 @@ class SpeechDetector:
         self.cons = False
         self.calculated = 0
 
-        return mouth_detector_buffer, problem
+        return problem
 
-    def validate(self, input_frame, valid, mouth_detector_buffer):
+    def validate(self, input_frame, valid):
         problem = False
         if self.cons and not valid:
-            return mouth_detector_buffer, problem
+            return problem
 
         self.window_counter = self.window_counter + 1
         self.window.append(input_frame)
@@ -103,7 +105,7 @@ class SpeechDetector:
             if self.window_open_counter > self.window_counter / 4:
                 for i in range(self.window_counter):
                     self.window[i].msg += "Speaking!"
-                    mouth_detector_buffer.append(self.window[i])
+                    self.invalid_buffer.append(self.window[i])
                 problem = True
 
             self.window = []
@@ -111,5 +113,7 @@ class SpeechDetector:
             self.window_open_counter = 0
             self.calculated = 0
 
-        return mouth_detector_buffer, problem
+        return problem
 
+    def get_invalid_buffer(self):
+        return self.invalid_buffer

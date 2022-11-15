@@ -13,7 +13,7 @@ class Database:
         self.fs = firestore.client()
         self.bucket = storage.bucket()
 
-    def add_user_to_database(self, id_number, first_name, last_name, email, image_path):
+    def add_student(self, id_number, first_name, last_name, email, image_path):
         user = self.fs.collection('students').document()
         data = {
             "id": user.id,
@@ -32,7 +32,7 @@ class Database:
         # Put url in database
         user.update({"image": storage_img_path})
 
-    def load_user(self, id_number):
+    def load_student(self, id_number):
         user = self.fs.collection("students").where("id_number", "==", id_number).get()
         user = user[0].to_dict()
 
@@ -47,3 +47,19 @@ class Database:
         storage_video_path = 'students/' + str(id_number) + "/" + os.path.basename(video_path)
         blob = self.bucket.blob(storage_video_path)
         blob.upload_from_filename(video_path)
+
+    def add_test(self, id_number, duration):
+        test = self.fs.collection('tests').document()
+        data = {
+            "id": test.id,
+            "id_number": id_number,
+            "duration": duration
+        }
+
+        self.fs.collection('tests').document(test.id).set(data)
+
+    def load_test(self, id_number):
+        test = self.fs.collection("tests").where("id_number", "==", id_number).get()
+        test = test[0].to_dict()
+
+        return test

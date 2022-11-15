@@ -21,6 +21,8 @@ class HeadPoseDetector:
         self.head_cons_aside_counter = 0
         self.cons = False
 
+        self.invalid_buffer = []
+
     def initialize(self, width, height):
         focal_length = width
         center = (width / 2, height / 2)
@@ -64,7 +66,7 @@ class HeadPoseDetector:
         # self.draw_result(img)
         # if result:
         #    cv2.putText(img, "Head forward!", (20, 70), cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 0, 255), 2)
-        #else:
+        # else:
         #    cv2.putText(img, "Head aside!", (20, 70), cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 0, 255), 2)
         return result
 
@@ -74,18 +76,18 @@ class HeadPoseDetector:
             cv2.putText(img, "y: " + str(np.round(self.y, 2)), (500, 100), cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 0, 255), 2)
             cv2.putText(img, "z: " + str(np.round(self.z, 2)), (500, 150), cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 0, 255), 2)
 
-    def reset(self, head_detector_buffer):
+    def reset(self):
         problem = False
         if self.cons:
             if self.head_cons_aside_counter >= 15:
                 for frame in self.head_cons_aside_buffer:
                     frame.msg += "Head aside!"
-                    head_detector_buffer.append(frame)
+                    self.invalid_buffer.append(frame)
                 problem = True
-        elif self.window_counter >= 2/3*self.window_limit and self.window_head_aside_counter >= self.window_counter / 2:
+        elif self.window_counter >= 2 / 3 * self.window_limit and self.window_head_aside_counter >= self.window_counter / 2:
             for i in range(self.window_counter):
                 self.window[i].msg += "Head aside!"
-                head_detector_buffer.append(self.window[i])
+                self.invalid_buffer.append(self.window[i])
             problem = True
 
         self.window = []
@@ -95,21 +97,21 @@ class HeadPoseDetector:
         self.head_cons_aside_counter = 0
         self.cons = False
 
-        return head_detector_buffer, problem
+        return problem
 
-    def validate(self, input_frame, valid, head_detector_buffer):
+    def validate(self, input_frame, valid):
         problem = False
 
         if self.cons and not valid:
             self.head_cons_aside_counter = self.head_cons_aside_counter + 1
             self.head_cons_aside_buffer.append(input_frame)
-            return head_detector_buffer, problem
+            return problem
         elif self.cons:
             self.cons = False
             if self.head_cons_aside_counter >= 15:
                 for frame in self.head_cons_aside_buffer:
                     frame.msg += "Head aside!"
-                    head_detector_buffer.append(frame)
+                    self.invalid_buffer.append(frame)
                 problem = True
 
         self.window_counter = self.window_counter + 1
@@ -133,11 +135,14 @@ class HeadPoseDetector:
             if self.window_head_aside_counter >= self.window_counter / 3:
                 for i in range(self.window_counter):
                     self.window[i].msg += "Head aside!"
-                    head_detector_buffer.append(self.window[i])
+                    self.invalid_buffer.append(self.window[i])
                 problem = True
 
             self.window_counter = 0
             self.window_head_aside_counter = 0
             self.window = []
 
-        return head_detector_buffer, problem
+        return problem
+
+    def get_invalid_buffer(self):
+        return self.invalid_buffer

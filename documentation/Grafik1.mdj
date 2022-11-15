@@ -148,7 +148,7 @@
 							"top": 191,
 							"width": 88.03173828125,
 							"height": 25,
-							"text": "EyesDetector"
+							"text": "EyesTracker"
 						},
 						{
 							"_type": "RectangleView",
@@ -172,9 +172,9 @@
 							"font": "Arial;13;0",
 							"left": 640,
 							"top": 295,
-							"width": 95.26171875,
+							"width": 103.2216796875,
 							"height": 25,
-							"text": "MouthDetector"
+							"text": "SpeechDetector"
 						},
 						{
 							"_type": "RectangleView",

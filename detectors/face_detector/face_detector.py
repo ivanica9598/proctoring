@@ -7,7 +7,7 @@ import numpy as np
 
 class FaceDetector:
 
-    def __init__(self, desiredLeftEye=(0.43, 0.43)):
+    def __init__(self, desiredLeftEye=(0.4, 0.4)):
         self.net = cv2.dnn.readNetFromTensorflow("detectors/face_detector/opencv_face_detector_uint8.pb",
                                                  "detectors/face_detector/opencv_face_detector.pbtxt")
         self.predictor = dlib.shape_predictor('detectors/face_detector/shape_predictor_68_face_landmarks.dat')
@@ -27,6 +27,8 @@ class FaceDetector:
         self.window_face_counter = 0
         self.cons = False
 
+        self.invalid_buffer = []
+
     def detect_faces(self, image, h, w, threshold=0.5):
         blob = cv2.dnn.blobFromImage(cv2.resize(image, (300, 300)), 1.0, (300, 300), (104.0, 177.0, 123.0))
         self.net.setInput(blob)
@@ -41,10 +43,17 @@ class FaceDetector:
                 self.result.append(([left, top, right, bottom], confidence))
 
         # self.draw_faces(image)
-        return len(self.result) == 1,  self.result
+        valid = len(self.result) == 1
+        if valid:
+            valid, self.landmarks, self.landmarks_np = self.detect_landmarks(image, self.result[0][0])
 
-    def align(self, image, h, w, leftEyePts, rightEyePts):
-        # compute the center of mass for each eye
+        return valid, self.landmarks, self.landmarks_np
+
+    def align(self, image, leftEyePts, rightEyePts):
+
+        desiredFaceWidth = 256
+        desiredFaceHeight = 256
+
         leftEyeCenter = leftEyePts.mean(axis=0).astype("int")
         rightEyeCenter = rightEyePts.mean(axis=0).astype("int")
 
@@ -56,7 +65,7 @@ class FaceDetector:
 
         dist = np.sqrt((dX ** 2) + (dY ** 2))
         desiredDist = (desiredRightEyeX - self.desiredLeftEye[0])
-        desiredDist *= w
+        desiredDist *= desiredFaceWidth
         scale = desiredDist / dist
 
         eyesCenter = ((leftEyeCenter[0] + rightEyeCenter[0]) // 2, (leftEyeCenter[1] + rightEyeCenter[1]) // 2)
@@ -64,22 +73,26 @@ class FaceDetector:
 
         M = cv2.getRotationMatrix2D(center, angle, scale)
 
-        tX = w * 0.5
-        tY = h * self.desiredLeftEye[1]
+        tX = desiredFaceWidth * 0.5
+        tY = desiredFaceHeight * self.desiredLeftEye[1]
         M[0, 2] += (tX - eyesCenter[0])
         M[1, 2] += (tY - eyesCenter[1])
 
+        (w, h) = (desiredFaceWidth, desiredFaceHeight)
         output = cv2.warpAffine(image, M, (w, h), flags=cv2.INTER_CUBIC)
+
+        parts = self.landmarks.parts()
+        transformed_landmarks = np.zeros((68, 2), dtype="int")
+        for i in range(0, 68):
+            rotated_point = M.dot(np.array((self.landmarks_np[i][0], self.landmarks_np[i][1], 1)))
+            transformed_landmarks[i] = (int(rotated_point[0]), int(rotated_point[1]))
+            parts[i] = dlib.point(transformed_landmarks[i][0], transformed_landmarks[i][1])
+        self.landmarks_np = transformed_landmarks
+        self.landmarks = dlib.full_object_detection(dlib.rectangle(0, 0, w, h), parts)
+
         # cv2.imshow('Aligned', output)
 
-        valid, face_boxes = self.detect_faces(output, h, w)
-        landmarks = None
-        landmarks_np = None
-        if valid:
-            face_box = face_boxes[0][0]
-            valid, landmarks, landmarks_np = self.detect_landmarks(output, face_box)
-
-        return valid, output, landmarks, landmarks_np
+        return output, self.landmarks, self.landmarks_np
 
     def draw_faces(self, image):
         if self.result is not None:
@@ -140,18 +153,18 @@ class FaceDetector:
             for mark in self.landmarks_np:
                 cv2.circle(image, (mark[0], mark[1]), 2, (0, 255, 0), -1, cv2.LINE_AA)
 
-    def reset(self, face_detector_buffer):
+    def reset(self):
         problem = False
         if self.cons:
             if self.face_cons_counter >= 15:
                 for frame in self.face_cons_buffer:
                     frame.msg += "Not 1 face!"
-                    face_detector_buffer.append(frame)
+                    self.invalid_buffer.append(frame)
                 problem = True
-        elif self.window_counter >= 2/3*self.window_limit and self.window_face_counter >= self.window_counter / 2:
+        elif self.window_counter >= 2 / 3 * self.window_limit and self.window_face_counter >= self.window_counter / 2:
             for i in range(self.window_counter):
                 self.window[i].msg += "Not 1 face!"
-                face_detector_buffer.append(self.window[i])
+                self.invalid_buffer.append(self.window[i])
             problem = True
 
         self.window = []
@@ -161,9 +174,9 @@ class FaceDetector:
         self.face_cons_counter = 0
         self.cons = False
 
-        return face_detector_buffer, problem
+        return problem
 
-    def validate(self, input_frame, valid, face_detector_buffer):
+    def validate(self, input_frame, valid):
         if not valid:
             self.draw_faces(input_frame.img)
 
@@ -172,13 +185,13 @@ class FaceDetector:
         if self.cons and not valid:
             self.face_cons_counter = self.face_cons_counter + 1
             self.face_cons_buffer.append(input_frame)
-            return face_detector_buffer, problem
+            return problem
         elif self.cons:
             self.cons = False
             if self.face_cons_counter >= 15:
                 for frame in self.face_cons_buffer:
                     frame.msg += "Not 1 face!"
-                    face_detector_buffer.append(frame)
+                    self.invalid_buffer.append(frame)
                 problem = True
 
         self.window_counter = self.window_counter + 1
@@ -202,11 +215,14 @@ class FaceDetector:
             if self.window_face_counter >= self.window_counter / 3:
                 for i in range(self.window_counter):
                     self.window[i].msg += "Not 1 face!"
-                    face_detector_buffer.append(self.window[i])
+                    self.invalid_buffer.append(self.window[i])
                 problem = True
 
             self.window_counter = 0
             self.window_face_counter = 0
             self.window = []
 
-        return face_detector_buffer, problem
+        return problem
+
+    def get_invalid_buffer(self):
+        return self.invalid_buffer

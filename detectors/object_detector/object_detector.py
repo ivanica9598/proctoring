@@ -28,6 +28,9 @@ class ObjectDetector:
         self.cellphone_cons_counter = 0
         self.cellphone_cons = False
 
+        self.person_invalid_buffer = []
+        self.cellphone_invalid_buffer = []
+
     def detect(self, frame, h, w):
         blob = cv2.dnn.blobFromImage(cv2.resize(frame, (300, 300)), size=(300, 300), mean=(104, 117, 123), swapRB=True)
         self.neural_network.setInput(blob)
@@ -63,7 +66,7 @@ class ObjectDetector:
                     # cv2.putText(frame, "Cellphone detected!", (20, 70), cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 0, 255), 2)
                     # cv2.putText(frame, "Not 1 person!", (20, 70), cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 0, 255), 2)
 
-    def validate_person(self, input_frame, person_valid, person_detector_buffer):
+    def validate_person(self, input_frame, person_valid):
         if not person_valid:
             self.draw(input_frame.img, "person")
 
@@ -72,13 +75,13 @@ class ObjectDetector:
         if self.person_cons and not person_valid:
             self.person_cons_counter = self.person_cons_counter + 1
             self.person_cons_buffer.append(input_frame)
-            return person_detector_buffer, problem
+            return problem
         elif self.person_cons:
             self.person_cons = False
             if self.person_cons_counter >= 15:
                 for frame in self.person_cons_buffer:
                     frame.msg += "Not 1 person!"
-                    person_detector_buffer.append(frame)
+                    self.person_invalid_buffer.append(frame)
                 problem = True
 
         self.person_window_counter = self.person_window_counter + 1
@@ -103,16 +106,16 @@ class ObjectDetector:
             if self.window_person_counter >= self.person_window_counter / 3:
                 for i in range(self.person_window_counter):
                     self.person_window[i].msg += "Not 1 person!"
-                    person_detector_buffer.append(self.person_window[i])
+                    self.person_invalid_buffer.append(self.person_window[i])
                 problem = True
 
             self.person_window_counter = 0
             self.window_person_counter = 0
             self.person_window = []
 
-        return person_detector_buffer, problem
+        return problem
 
-    def validate_cellphone(self, input_frame, cellphone_valid, cellphone_detector_buffer):
+    def validate_cellphone(self, input_frame, cellphone_valid):
         if not cellphone_valid:
             self.draw(input_frame.img, "cellphone")
 
@@ -121,13 +124,13 @@ class ObjectDetector:
         if self.cellphone_cons and not cellphone_valid:
             self.cellphone_cons_counter = self.cellphone_cons_counter + 1
             self.cellphone_cons_buffer.append(input_frame)
-            return cellphone_detector_buffer, problem
+            return problem
         elif self.cellphone_cons:
             self.cellphone_cons = False
             if self.cellphone_cons_counter >= 15:
                 for frame in self.cellphone_cons_buffer:
                     frame.msg += "Cellphone detected!"
-                    cellphone_detector_buffer.append(frame)
+                    self.cellphone_invalid_buffer.append(frame)
                 problem = True
 
         self.cellphone_window_counter = self.cellphone_window_counter + 1
@@ -152,11 +155,14 @@ class ObjectDetector:
             if self.window_cellphone_counter >= self.cellphone_window_counter / 3:
                 for i in range(self.cellphone_window_counter):
                     self.cellphone_window[i].msg += "Cellphone detected!"
-                    cellphone_detector_buffer.append(self.cellphone_window[i])
+                    self.cellphone_invalid_buffer.append(self.cellphone_window[i])
                 problem = True
 
             self.cellphone_window_counter = 0
             self.window_cellphone_counter = 0
             self.cellphone_window = []
 
-        return cellphone_detector_buffer, problem
+        return problem
+
+    def get_invalid_buffer(self):
+        return self.person_invalid_buffer + self.cellphone_invalid_buffer

@@ -1,0 +1,263 @@
+{
+	"_type": "Project",
+	"_id": "AAAAAAFF+h6SjaM2Hec=",
+	"name": "Untitled",
+	"ownedElements": [
+		{
+			"_type": "UMLModel",
+			"_id": "AAAAAAFF+qBWK6M3Z8Y=",
+			"_parent": {
+				"$ref": "AAAAAAFF+h6SjaM2Hec="
+			},
+			"name": "Model",
+			"ownedElements": [
+				{
+					"_type": "UMLClassDiagram",
+					"_id": "AAAAAAFF+qBtyKM79qY=",
+					"_parent": {
+						"$ref": "AAAAAAFF+qBWK6M3Z8Y="
+					},
+					"name": "Main",
+					"defaultDiagram": true,
+					"ownedViews": [
+						{
+							"_type": "RectangleView",
+							"_id": "AAAAAAGEYacTqBnZh+c=",
+							"_parent": {
+								"$ref": "AAAAAAFF+qBtyKM79qY="
+							},
+							"font": "Arial;13;0",
+							"left": 536,
+							"top": 120,
+							"width": 217,
+							"height": 41
+						},
+						{
+							"_type": "UMLTextView",
+							"_id": "AAAAAAGEYaciCRnc4eM=",
+							"_parent": {
+								"$ref": "AAAAAAFF+qBtyKM79qY="
+							},
+							"font": "Arial;13;0",
+							"left": 592,
+							"top": 128,
+							"width": 116.02490234375,
+							"height": 25,
+							"text": "Препроцисирање"
+						},
+						{
+							"_type": "UMLTextView",
+							"_id": "AAAAAAGEYadoNhnhvmo=",
+							"_parent": {
+								"$ref": "AAAAAAFF+qBtyKM79qY="
+							},
+							"font": "Arial;13;0",
+							"left": 592,
+							"top": 80,
+							"width": 105,
+							"height": 25,
+							"text": "Улазна слика"
+						},
+						{
+							"_type": "RectangleView",
+							"_id": "AAAAAAGEYa3flxnpsYM=",
+							"_parent": {
+								"$ref": "AAAAAAFF+qBtyKM79qY="
+							},
+							"font": "Arial;13;0",
+							"left": 536,
+							"top": 176,
+							"width": 217,
+							"height": 41
+						},
+						{
+							"_type": "UMLTextView",
+							"_id": "AAAAAAGEYa3flxnqqTU=",
+							"_parent": {
+								"$ref": "AAAAAAFF+qBtyKM79qY="
+							},
+							"font": "Arial;13;0",
+							"left": 568,
+							"top": 184,
+							"width": 161,
+							"height": 38,
+							"text": "Рачунање градијената"
+						},
+						{
+							"_type": "RectangleView",
+							"_id": "AAAAAAGEYa7YfRnyAZ8=",
+							"_parent": {
+								"$ref": "AAAAAAFF+qBtyKM79qY="
+							},
+							"font": "Arial;13;0",
+							"left": 536,
+							"top": 232,
+							"width": 217,
+							"height": 41
+						},
+						{
+							"_type": "UMLTextView",
+							"_id": "AAAAAAGEYa7YfRnzpG4=",
+							"_parent": {
+								"$ref": "AAAAAAFF+qBtyKM79qY="
+							},
+							"font": "Arial;13;0",
+							"left": 560,
+							"top": 240,
+							"width": 169,
+							"height": 38,
+							"text": "Подела слике на ћелије "
+						},
+						{
+							"_type": "RectangleView",
+							"_id": "AAAAAAGEYa9L2xn76kA=",
+							"_parent": {
+								"$ref": "AAAAAAFF+qBtyKM79qY="
+							},
+							"font": "Arial;13;0",
+							"left": 536,
+							"top": 352,
+							"width": 217,
+							"height": 41
+						},
+						{
+							"_type": "UMLTextView",
+							"_id": "AAAAAAGEYa9L2xn8aeg=",
+							"_parent": {
+								"$ref": "AAAAAAFF+qBtyKM79qY="
+							},
+							"font": "Arial;13;0",
+							"left": 552,
+							"top": 360,
+							"width": 193,
+							"height": 38,
+							"text": "Нормализација хистограма"
+						},
+						{
+							"_type": "RectangleView",
+							"_id": "AAAAAAGEYa/ChhoEkTo=",
+							"_parent": {
+								"$ref": "AAAAAAFF+qBtyKM79qY="
+							},
+							"font": "Arial;13;0",
+							"left": 536,
+							"top": 408,
+							"width": 217,
+							"height": 41
+						},
+						{
+							"_type": "RectangleView",
+							"_id": "AAAAAAGEYbNqpxoz5VI=",
+							"_parent": {
+								"$ref": "AAAAAAFF+qBtyKM79qY="
+							},
+							"font": "Arial;13;0",
+							"left": 536,
+							"top": 288,
+							"width": 217,
+							"height": 49
+						},
+						{
+							"_type": "UMLTextView",
+							"_id": "AAAAAAGEYbNqpxo0tvw=",
+							"_parent": {
+								"$ref": "AAAAAAFF+qBtyKM79qY="
+							},
+							"font": "Arial;13;0",
+							"left": 536,
+							"top": 296,
+							"width": 225,
+							"height": 25,
+							"text": "Рачунање хистограма градијената"
+						},
+						{
+							"_type": "UMLTextView",
+							"_id": "AAAAAAGEYa/ChhoFRT4=",
+							"_parent": {
+								"$ref": "AAAAAAFF+qBtyKM79qY="
+							},
+							"font": "Arial;13;0",
+							"left": 576,
+							"top": 416,
+							"width": 137,
+							"height": 38,
+							"text": "SVM класификација"
+						},
+						{
+							"_type": "RectangleView",
+							"_id": "AAAAAAGEYeaqaxq82Mg=",
+							"_parent": {
+								"$ref": "AAAAAAFF+qBtyKM79qY="
+							},
+							"fillColor": "#000000",
+							"font": "Arial;13;0",
+							"left": 648,
+							"top": 104,
+							"height": 17
+						},
+						{
+							"_type": "RectangleView",
+							"_id": "AAAAAAGEYehqsRrQaXM=",
+							"_parent": {
+								"$ref": "AAAAAAFF+qBtyKM79qY="
+							},
+							"fillColor": "#000000",
+							"font": "Arial;13;0",
+							"left": 648,
+							"top": 160,
+							"height": 17
+						},
+						{
+							"_type": "RectangleView",
+							"_id": "AAAAAAGEYeiHahrVP3E=",
+							"_parent": {
+								"$ref": "AAAAAAFF+qBtyKM79qY="
+							},
+							"fillColor": "#000000",
+							"font": "Arial;13;0",
+							"left": 648,
+							"top": 216,
+							"height": 17
+						},
+						{
+							"_type": "RectangleView",
+							"_id": "AAAAAAGEYeif2Rraxjw=",
+							"_parent": {
+								"$ref": "AAAAAAFF+qBtyKM79qY="
+							},
+							"fillColor": "#000000",
+							"font": "Arial;13;0",
+							"left": 648,
+							"top": 272,
+							"height": 17
+						},
+						{
+							"_type": "RectangleView",
+							"_id": "AAAAAAGEYei2DRrfbJo=",
+							"_parent": {
+								"$ref": "AAAAAAFF+qBtyKM79qY="
+							},
+							"fillColor": "#000000",
+							"font": "Arial;13;0",
+							"left": 648,
+							"top": 336,
+							"height": 17
+						},
+						{
+							"_type": "RectangleView",
+							"_id": "AAAAAAGEYejRQhrkDXw=",
+							"_parent": {
+								"$ref": "AAAAAAFF+qBtyKM79qY="
+							},
+							"fillColor": "#000000",
+							"font": "Arial;13;0",
+							"left": 648,
+							"top": 392,
+							"height": 17
+						}
+					]
+				}
+			]
+		}
+	]
+}

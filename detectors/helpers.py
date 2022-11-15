@@ -4,7 +4,6 @@ import cv2
 
 def shape_to_np(shape, dtype="int"):
     array = np.zeros((68, 2), dtype=dtype)
-
     for i in range(0, 68):
         array[i] = (shape.part(i).x, shape.part(i).y)
     return array
