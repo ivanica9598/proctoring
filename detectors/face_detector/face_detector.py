@@ -27,9 +27,7 @@ class FaceDetector:
         self.window_face_counter = 0
         self.cons = False
 
-        self.invalid_buffer = []
-
-    def detect_faces(self, image, h, w, threshold=0.5):
+    def detect_faces(self, image, h, w, threshold=0.7):
         blob = cv2.dnn.blobFromImage(cv2.resize(image, (300, 300)), 1.0, (300, 300), (104.0, 177.0, 123.0))
         self.net.setInput(blob)
         detections = self.net.forward()
@@ -158,13 +156,13 @@ class FaceDetector:
         if self.cons:
             if self.face_cons_counter >= 15:
                 for frame in self.face_cons_buffer:
-                    frame.msg += "Not 1 face!"
-                    self.invalid_buffer.append(frame)
+                    frame.msg += "Not 1 face! "
+                    frame.valid = False
                 problem = True
         elif self.window_counter >= 2 / 3 * self.window_limit and self.window_face_counter >= self.window_counter / 2:
             for i in range(self.window_counter):
-                self.window[i].msg += "Not 1 face!"
-                self.invalid_buffer.append(self.window[i])
+                self.window[i].msg += "Not 1 face! "
+                self.window[i].valid = False
             problem = True
 
         self.window = []
@@ -190,8 +188,8 @@ class FaceDetector:
             self.cons = False
             if self.face_cons_counter >= 15:
                 for frame in self.face_cons_buffer:
-                    frame.msg += "Not 1 face!"
-                    self.invalid_buffer.append(frame)
+                    frame.msg += "Not 1 face! "
+                    frame.valid = False
                 problem = True
 
         self.window_counter = self.window_counter + 1
@@ -214,8 +212,8 @@ class FaceDetector:
                 self.cons = False
             if self.window_face_counter >= self.window_counter / 3:
                 for i in range(self.window_counter):
-                    self.window[i].msg += "Not 1 face!"
-                    self.invalid_buffer.append(self.window[i])
+                    self.window[i].msg += "Not 1 face! "
+                    self.window[i].valid = False
                 problem = True
 
             self.window_counter = 0
@@ -224,5 +222,3 @@ class FaceDetector:
 
         return problem
 
-    def get_invalid_buffer(self):
-        return self.invalid_buffer

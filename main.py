@@ -13,11 +13,11 @@ from detectors.face_recognizer.face_recognizer import FaceRecognizer
 
 
 class Frame:
-    def __init__(self, img, id_num=-1, frame_time=""):
+    def __init__(self, img, frame_time=""):
         self.img = img
-        self.id = id_num
         self.msg = ""
         self.time = frame_time
+        self.valid = True
 
 
 class ProctoringSystem:
@@ -156,18 +156,10 @@ class ProctoringSystem:
             str_sec = str(sec)
         return "Time: " + str_mins + ":" + str_sec
 
-    def create_invalid_buffer(self):
-        self.invalid_buffer = list(
-            set().union(self.object_detector.get_invalid_buffer(),
-                        self.face_detector.get_invalid_buffer(), self.head_pose_detector.get_invalid_buffer(),
-                        self.eyes_tracker.get_invalid_buffer(), self.liveness_detector.get_invalid_buffer(),
-                        self.speech_detector.get_invalid_buffer(),
-                        self.face_recognizer.get_invalid_buffer()))
-
     def main_report(self, size, buffer, file_name, fps):
         if len(buffer) != 0:
-            buffer = sorted(buffer, key=lambda x: x.id, reverse=False)
-            out = cv2.VideoWriter(self.test.duration + "_" + file_name, cv2.VideoWriter_fourcc(*'DIVX'), fps, size)
+            file_name = self.test["id_number"] + "_" + file_name
+            out = cv2.VideoWriter(file_name, cv2.VideoWriter_fourcc(*'DIVX'), fps, size)
             for frame in buffer:
                 cv2.putText(frame.img, frame.msg, (20, 70), cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 0, 255), 2)
                 cv2.putText(frame.img, frame.time, (20, 30), cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 255, 0), 2)
@@ -195,7 +187,7 @@ class ProctoringSystem:
                     if not end:
                         frame_time = self.get_time(time_limit, time_passed)
                         self.frame_counter = self.frame_counter + 1
-                        input_frame = Frame(input_img.copy(), self.frame_counter, frame_time)
+                        input_frame = Frame(input_img, frame_time)
                         self.main_buffer.append(input_frame)
                         if self.object_detector_validation(input_frame, h, w):
                             valid, landmarks, landmarks_np = self.face_detector_validation(input_frame, h, w)
@@ -245,12 +237,12 @@ class ProctoringSystem:
                 if cv2.waitKey(1) & 0xFF == ord('q') or end:
                     break
 
-            self.create_invalid_buffer()
             self.main_report(size, self.main_buffer, "video.avi", 10)
+            self.invalid_buffer = [x for x in self.main_buffer if x.valid is False]
             self.main_report(size, self.invalid_buffer, "report.avi", 10)
             print(self.test["id_number"] + ": Finished.")
-            fps = self.frame_counter / time_limit
-            print("FPS: " + str(fps))
+            # fps = self.frame_counter / time_limit
+            # print("FPS: " + str(fps))
 
 
 proctoring_system = ProctoringSystem()
@@ -267,12 +259,9 @@ elif action == "b":
     proctoring_system.add_tests()
     print("Add tests: Done.")
 else:
-    proctoring_system.start("16704", "Math-test1")
+    proctoring_system.start("16704", "Math-test2")
     # print("Student id: ")
     # student = input()
     # print("Test id: ")
     # test = input()
     # proctoring_system.start(student, test)
-    print("Start test: Done.")
-
-

@@ -21,8 +21,6 @@ class SpeechDetector:
         self.cons = False
         self.calculated = 0
 
-        self.invalid_buffer = []
-
     def initialize(self, student_top_lip, student_bottom_lip):
         self.set_image(student_top_lip, student_bottom_lip, True)
 
@@ -63,8 +61,8 @@ class SpeechDetector:
 
         if self.window_counter >= 2 / 3 * self.window_limit and self.window_open_counter > self.window_counter / 3:
             for i in range(self.window_counter):
-                self.window[i].msg += "Speaking!"
-                self.invalid_buffer.append(self.window[i])
+                self.window[i].msg += "Speaking! "
+                self.window[i].valid = False
             problem = True
 
         self.window = []
@@ -104,8 +102,8 @@ class SpeechDetector:
                 self.cons = False
             if self.window_open_counter > self.window_counter / 4:
                 for i in range(self.window_counter):
-                    self.window[i].msg += "Speaking!"
-                    self.invalid_buffer.append(self.window[i])
+                    self.window[i].msg += "Speaking! "
+                    self.window[i].valid = False
                 problem = True
 
             self.window = []
@@ -114,6 +112,3 @@ class SpeechDetector:
             self.calculated = 0
 
         return problem
-
-    def get_invalid_buffer(self):
-        return self.invalid_buffer

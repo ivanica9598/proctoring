@@ -17,8 +17,6 @@ class FaceRecognizer:
         self.window_limit = 50
         self.cons = False
 
-        self.invalid_buffer = []
-
     def set_image(self, image, marks, initial):
         encodings = []
         if not initial:
@@ -53,8 +51,8 @@ class FaceRecognizer:
 
         if self.window_not_recognized:
             for frame in self.window:
-                frame.msg += "Not recognized!"
-                self.invalid_buffer.append(frame)
+                frame.msg += "Not recognized! "
+                frame.valid = False
             problem = True
 
         self.window = []
@@ -75,8 +73,8 @@ class FaceRecognizer:
         if self.window_counter == self.window_limit:
             if self.window_not_recognized:
                 for frame in self.window:
-                    frame.msg += "Not recognized!"
-                    self.invalid_buffer.append(frame)
+                    frame.msg += "Not recognized! "
+                    frame.valid = False
                 problem = True
 
             self.window_counter = 0
@@ -85,5 +83,3 @@ class FaceRecognizer:
 
         return problem
 
-    def get_invalid_buffer(self):
-        return self.invalid_buffer

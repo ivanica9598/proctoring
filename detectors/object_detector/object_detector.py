@@ -15,21 +15,17 @@ class ObjectDetector:
 
         self.person_window = []
         self.person_window_counter = 0
-        self.cellphone_window = []
-        self.cellphone_window_counter = 0
-
         self.window_person_counter = 0
         self.person_cons_buffer = []
         self.person_cons_counter = 0
         self.person_cons = False
 
+        self.cellphone_window = []
+        self.cellphone_window_counter = 0
         self.window_cellphone_counter = 0
         self.cellphone_cons_buffer = []
         self.cellphone_cons_counter = 0
         self.cellphone_cons = False
-
-        self.person_invalid_buffer = []
-        self.cellphone_invalid_buffer = []
 
     def detect(self, frame, h, w):
         blob = cv2.dnn.blobFromImage(cv2.resize(frame, (300, 300)), size=(300, 300), mean=(104, 117, 123), swapRB=True)
@@ -63,8 +59,8 @@ class ObjectDetector:
                 if box[2] == class_name:
                     (left, top, right, bottom) = box[0].astype("int")
                     draw_box(frame, [left, top, right, bottom], box[2], box[1])
-                    # cv2.putText(frame, "Cellphone detected!", (20, 70), cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 0, 255), 2)
-                    # cv2.putText(frame, "Not 1 person!", (20, 70), cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 0, 255), 2)
+                    # cv2.putText(frame, "Cellphone detected!", (20, 70), cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 255, 0), 2)
+                    # cv2.putText(frame, "Not 1 person!", (20, 70), cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 255, 0), 2)
 
     def validate_person(self, input_frame, person_valid):
         if not person_valid:
@@ -80,8 +76,8 @@ class ObjectDetector:
             self.person_cons = False
             if self.person_cons_counter >= 15:
                 for frame in self.person_cons_buffer:
-                    frame.msg += "Not 1 person!"
-                    self.person_invalid_buffer.append(frame)
+                    frame.msg += "Not 1 person! "
+                    frame.valid = False
                 problem = True
 
         self.person_window_counter = self.person_window_counter + 1
@@ -105,8 +101,8 @@ class ObjectDetector:
 
             if self.window_person_counter >= self.person_window_counter / 3:
                 for i in range(self.person_window_counter):
-                    self.person_window[i].msg += "Not 1 person!"
-                    self.person_invalid_buffer.append(self.person_window[i])
+                    self.person_window[i].msg += "Not 1 person! "
+                    self.person_window[i].valid = False
                 problem = True
 
             self.person_window_counter = 0
@@ -129,8 +125,8 @@ class ObjectDetector:
             self.cellphone_cons = False
             if self.cellphone_cons_counter >= 15:
                 for frame in self.cellphone_cons_buffer:
-                    frame.msg += "Cellphone detected!"
-                    self.cellphone_invalid_buffer.append(frame)
+                    frame.msg += "Cellphone detected! "
+                    frame.valid = False
                 problem = True
 
         self.cellphone_window_counter = self.cellphone_window_counter + 1
@@ -154,8 +150,8 @@ class ObjectDetector:
 
             if self.window_cellphone_counter >= self.cellphone_window_counter / 3:
                 for i in range(self.cellphone_window_counter):
-                    self.cellphone_window[i].msg += "Cellphone detected!"
-                    self.cellphone_invalid_buffer.append(self.cellphone_window[i])
+                    self.cellphone_window[i].msg += "Cellphone detected! "
+                    self.cellphone_window[i].valid = False
                 problem = True
 
             self.cellphone_window_counter = 0
@@ -164,5 +160,3 @@ class ObjectDetector:
 
         return problem
 
-    def get_invalid_buffer(self):
-        return self.person_invalid_buffer + self.cellphone_invalid_buffer

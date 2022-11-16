@@ -17,8 +17,6 @@ class EyesTracker:
         self.looking_cons_aside_counter = 0
         self.cons = False
 
-        self.invalid_buffer = []
-
     def set_new_frame(self, frame, left_eye_landmarks, right_eye_landmarks):
         self.frame = frame
         frame = cv2.cvtColor(self.frame, cv2.COLOR_BGR2GRAY)
@@ -42,7 +40,7 @@ class EyesTracker:
         valid = self.set_new_frame(frame, left_eye_landmarks, right_eye_landmarks)
         if valid:
             # self.draw_pupils(frame)
-            # cv2.putText(frame, "Looking aside!", (20, 50), cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 0, 255), 2)
+            # cv2.putText(frame, "Looking aside!", (20, 50), cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 255, 0), 2)
             # cv2.imshow('Eyes', frame)
             if self.horizontal_ratio <= 0.35:
                 return False, "Eyes right"
@@ -58,13 +56,13 @@ class EyesTracker:
         if self.cons:
             if self.looking_cons_aside_counter >= 15:
                 for frame in self.looking_cons_aside_buffer:
-                    frame.msg += "Looking aside!"
-                    self.invalid_buffer.append(frame)
+                    frame.msg += "Looking aside! "
+                    frame.valid = False
                 problem = True
         elif self.window_counter >= 2 / 3 * self.window_limit and self.window_looking_aside_counter >= self.window_counter / 2:
             for i in range(self.window_counter):
-                self.window[i].msg += "Looking aside!"
-                self.invalid_buffer.append(self.window[i])
+                self.window[i].msg += "Looking aside! "
+                self.window[i].valid = False
             problem = True
 
         self.window = []
@@ -87,8 +85,8 @@ class EyesTracker:
             self.cons = False
             if self.looking_cons_aside_counter >= 15:
                 for frame in self.looking_cons_aside_buffer:
-                    frame.msg += "Looking aside!"
-                    self.invalid_buffer.append(frame)
+                    frame.msg += "Looking aside! "
+                    frame.valid = False
                 problem = True
 
         self.window_counter = self.window_counter + 1
@@ -111,8 +109,8 @@ class EyesTracker:
                 self.cons = False
             if self.window_looking_aside_counter >= self.window_counter / 3:
                 for i in range(self.window_counter):
-                    self.window[i].msg += "Looking aside!"
-                    self.invalid_buffer.append(self.window[i])
+                    self.window[i].msg += "Looking aside! "
+                    self.window[i].valid = False
                 problem = True
 
             self.window_counter = 0
@@ -121,5 +119,3 @@ class EyesTracker:
 
         return problem
 
-    def get_invalid_buffer(self):
-        return self.invalid_buffer
