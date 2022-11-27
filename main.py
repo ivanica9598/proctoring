@@ -1,23 +1,29 @@
 import cv2
 import time
-import math
+import webrtcvad
+import pyaudio
+import threading
+import numpy as np
+import matplotlib.pyplot as plt
 
 from database.database import Database
 from detectors.object_detector.object_detector import ObjectDetector
 from detectors.face_detector.face_detector import FaceDetector
 from detectors.head_pose_detector.head_pose_detector import HeadPoseDetector
 from detectors.liveness_detector.liveness_detector import LivenessDetector
-from detectors.eyes_tracker.eyes_tracker import EyesTracker
+from detectors.gaze_detector.gaze_detector import GazeDetector
 from detectors.speech_detector.speech_detector import SpeechDetector
 from detectors.face_recognizer.face_recognizer import FaceRecognizer
 
 
 class Frame:
-    def __init__(self, img, frame_time=""):
+    def __init__(self, img, frame_time="", time_passed=None):
         self.img = img
         self.msg = ""
         self.time = frame_time
         self.valid = True
+        self.time_passed = time_passed
+        self.speech = False
 
 
 class ProctoringSystem:
@@ -28,28 +34,34 @@ class ProctoringSystem:
         self.face_detector = FaceDetector()
         self.head_pose_detector = HeadPoseDetector()
         self.liveness_detector = LivenessDetector()
-        self.eyes_tracker = EyesTracker()
+        self.gaze_detector = GazeDetector()
         self.speech_detector = SpeechDetector()
         self.face_recognizer = FaceRecognizer()
 
         self.student = None
         self.student_image = None
         self.test = None
+        self.size = None
 
         self.invalid_buffer = []
         self.main_buffer = []
         self.frame_counter = 0
         self.warning = ""
 
-    def add_students(self):
-        self.database.add_student("12345", "Petar", "Petrovic", "petar@gmail.com", "images/face1.jpg")
-        self.database.add_student("67890", "Miroslav", "Mikic", "miroslav@gmail.com", "images/face1.jpg")
-        self.database.add_student("16704", "Ivana", "Milivojevic", "ivana@gmail.com", "images/face1.jpg")
+        self.voice_dict = {}
+        self.audio_buffer = []
 
-    def add_tests(self):
-        self.database.add_test("Math-test1", 240)
-        self.database.add_test("Math-test2", 120)
-        self.database.add_test("Math-test3", 180)
+    def add_student(self, id_num, first_name, last_name, img_path):
+        self.database.add_student(id_num, first_name, last_name, img_path)
+        # self.database.add_student("12345", "Petar", "Petrovic", "images/face1.jpg")
+        # self.database.add_student("67890", "Miroslav", "Mikic", "images/face1.jpg")
+        # self.database.add_student("16704", "Ivana", "Milivojevic", "images/face1.jpg")
+
+    def add_test(self, id_num, h, m, s):
+        self.database.add_test(id_num, h, m, s)
+        # self.database.add_test("Math-test1", 0, 4, 0)
+        # self.database.add_test("Math-test2", 0, 2, 0)
+        # self.database.add_test("Math-test3", 3, 3, 0)
 
     def load_student(self, student_id):
         self.student, self.student_image = self.database.load_student(student_id)
@@ -67,8 +79,7 @@ class ProctoringSystem:
 
             top_lip = self.face_detector.get_top_lip_landmarks()
             bottom_lip = self.face_detector.get_bottom_lip_landmarks()
-            self.speech_detector.initialize(top_lip, bottom_lip)
-
+            self.speech_detector.initialize(self.student_image, top_lip, bottom_lip)
             valid = self.face_recognizer.set_image(self.student_image, landmarks, True)
 
         return valid
@@ -82,7 +93,7 @@ class ProctoringSystem:
         cellphone_problem = self.object_detector.validate_cellphone(input_frame, cellphone_valid)
 
         if person_problem:
-            self.warning += 'Not 1 person!'
+            self.warning += 'More then 1 person!'
         if cellphone_problem:
             self.warning += 'Cellphone detected!'
 
@@ -93,7 +104,7 @@ class ProctoringSystem:
         problem = self.face_detector.validate(input_frame, valid)
 
         if problem:
-            self.warning += 'Not 1 face!'
+            self.warning += 'Not 1 person!'
 
         return valid, landmarks, landmarks_np
 
@@ -107,25 +118,25 @@ class ProctoringSystem:
         return valid
 
     def liveness_detector_validation(self, input_frame, left_eye, right_eye, time_passed):
-        valid = self.liveness_detector.is_blinking(input_frame.img, left_eye, right_eye)
+        closed = self.liveness_detector.is_blinking(input_frame.img, left_eye, right_eye)
         problem = self.liveness_detector.validate(input_frame, time_passed)
 
         if problem:
             self.warning += 'Not live face!'
 
-        return valid
+        return closed
 
-    def eyes_tracker_validation(self, input_frame, img, left_eye, right_eye):
-        valid, msg = self.eyes_tracker.check_frame(img, left_eye, right_eye)
-        problem = self.eyes_tracker.validate(input_frame, valid)
+    def gaze_detector_validation(self, input_frame, img, left_eye, right_eye, closed):
+        valid, msg = self.gaze_detector.check_frame(img, left_eye, right_eye, closed)
+        problem = self.gaze_detector.validate(input_frame, valid)
 
         if problem:
             self.warning += 'Looked aside!'
 
         return valid
 
-    def speech_detector_validation(self, input_frame, top_lip, bottom_lip):
-        valid = self.speech_detector.is_open(top_lip, bottom_lip)
+    def speech_detector_validation(self, image, input_frame, top_lip, bottom_lip):
+        valid = self.speech_detector.is_open(image, top_lip, bottom_lip)
         problem = self.speech_detector.validate(input_frame, valid)
 
         if problem:
@@ -141,123 +152,230 @@ class ProctoringSystem:
 
         return valid
 
-    @staticmethod
-    def get_time(time_limit, time_passed):
-        time_showing = round(time_limit - time_passed)
-        mins = math.trunc(time_showing / 60)
-        sec = round(time_showing % 60)
-        if mins < 10:
-            str_mins = "0" + str(mins)
-        else:
-            str_mins = str(mins)
-        if sec < 10:
-            str_sec = "0" + str(sec)
-        else:
-            str_sec = str(sec)
-        return "Time: " + str_mins + ":" + str_sec
+    def report(self, size, file_name_full, file_name_invalid, fps):
+        if len(self.main_buffer) != 0:
+            video_path_full = self.test["id_number"] + "_" + file_name_full
+            video_path_invalid = self.test["id_number"] + "_" + file_name_invalid
+            full_out = cv2.VideoWriter(video_path_full, cv2.VideoWriter_fourcc(*'DIVX'), fps, size)
+            invalid_out = cv2.VideoWriter(video_path_invalid, cv2.VideoWriter_fourcc(*'DIVX'), fps, size)
 
-    def main_report(self, size, buffer, file_name, fps):
-        if len(buffer) != 0:
-            file_name = self.test["id_number"] + "_" + file_name
-            out = cv2.VideoWriter(file_name, cv2.VideoWriter_fourcc(*'DIVX'), fps, size)
-            for frame in buffer:
+            for frame in self.main_buffer:
                 cv2.putText(frame.img, frame.msg, (20, 70), cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 0, 255), 2)
                 cv2.putText(frame.img, frame.time, (20, 30), cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 255, 0), 2)
-                out.write(frame.img)
-            out.release()
-            self.database.add_report(self.student["id"], file_name)
+                full_out.write(frame.img)
+                if not frame.valid:
+                    invalid_out.write(frame.img)
+
+            full_out.release()
+            invalid_out.release()
+            self.database.add_report(self.student["id"], self.test["id_number"], file_name_full, video_path_full)
+            self.database.add_report(self.student["id"], self.test["id_number"], file_name_invalid, video_path_invalid)
 
     def start(self, student_id, test_id):
         valid = self.load_student(student_id)
         if valid:
             self.load_test(test_id)
             print(self.test["id_number"] + ": Started.")
-            time_limit = self.test["duration"]
+            time_limit = self.test["hours"] * 3600 + self.test["minutes"] * 60 + self.test["seconds"]
+
             cap = cv2.VideoCapture(0)
             _, input_img = cap.read()
             (h, w) = input_img.shape[:2]
-            size = (w, h)
-            start = time.time()
-            end = False
-            while True:
-                success, input_img = cap.read()
-                if success:
-                    time_passed = round(time.time() - start, 1)
-                    end = time_passed > time_limit
-                    if not end:
-                        frame_time = self.get_time(time_limit, time_passed)
-                        self.frame_counter = self.frame_counter + 1
-                        input_frame = Frame(input_img, frame_time)
-                        self.main_buffer.append(input_frame)
-                        if self.object_detector_validation(input_frame, h, w):
-                            valid, landmarks, landmarks_np = self.face_detector_validation(input_frame, h, w)
-                            if valid:
-                                image_points = self.face_detector.get_head_pose_landmarks()
-                                valid = self.head_pose_detector_validation(input_frame, h, w, image_points)
-                                if valid:
-                                    left_eye = self.face_detector.get_left_eye_landmarks()
-                                    right_eye = self.face_detector.get_right_eye_landmarks()
-                                    new_img, landmarks, landmarks_np = self.face_detector.align(input_img, left_eye,
-                                                                                                right_eye)
-                                    left_eye = self.face_detector.get_left_eye_landmarks()
-                                    right_eye = self.face_detector.get_right_eye_landmarks()
-                                    valid = self.liveness_detector_validation(input_frame, left_eye, right_eye,
-                                                                              int(time_passed))
-                                    if valid:
-                                        self.eyes_tracker_validation(input_frame, new_img, left_eye, right_eye)
-                                    top_lip = self.face_detector.get_top_lip_landmarks()
-                                    bottom_lip = self.face_detector.get_bottom_lip_landmarks()
-                                    self.speech_detector_validation(input_frame, top_lip, bottom_lip)
-                                    self.face_recognizer_validation(input_frame, new_img, landmarks)
-                                else:
-                                    self.liveness_detector.reset()
-                                    self.eyes_tracker.reset()
-                                    self.speech_detector.reset()
-                                    self.face_recognizer.reset()
-                            else:
-                                self.head_pose_detector.reset()
-                                self.liveness_detector.reset()
-                                self.eyes_tracker.reset()
-                                self.speech_detector.reset()
-                                self.face_recognizer.reset()
+            self.size = (w, h)
+
+            vad = webrtcvad.Vad(3)
+            sample_rate = 16000
+            frame_duration = 0.02
+            frames_per_buffer = int(frame_duration * sample_rate)
+
+            FORMAT = pyaudio.paInt16
+            CHANNELS = 1
+            p = pyaudio.PyAudio()
+            stream = p.open(
+                format=FORMAT,
+                channels=CHANNELS,
+                rate=sample_rate,
+                input=True,
+                frames_per_buffer=frames_per_buffer
+            )
+
+            start_time = time.time()
+
+            audio_thread = threading.Thread(target=self.audio_record, args=(
+                time_limit, start_time, stream, vad, sample_rate, frames_per_buffer))
+            video_thread = threading.Thread(target=self.video_record, args=(time_limit, start_time, cap, w, h))
+
+            audio_thread.start()
+            video_thread.start()
+
+            audio_thread.join()
+            video_thread.join()
+
+            cap.release()
+            stream.stop_stream()
+            stream.close()
+            p.terminate()
+
+            plt.figure(figsize=(15, 5))
+            plt.ylabel('Speech probability')
+            plt.xlabel('Time (s)')
+            plt.xlim(0, time_limit)
+            plt.xticks(np.arange(0, time_limit + 1, 5.0))
+
+            keys = self.voice_dict.keys()
+            times = []
+            values = []
+            for key in keys:
+                if self.voice_dict[key] > 0:
+                    values.append(1)
+                    times.append(key)
+                # else:
+                #    values.append(0)
+            plt.plot(times, values, c='blue', label="microphone", marker='o', linestyle='None', markersize=2.0)
+
+            times = []
+            values = []
+            for frame in self.main_buffer:
+                times.append(frame.time_passed)
+                if frame.speech:
+                    values.append(1)
+                else:
+                    values.append(0)
+
+            plt.plot(times, values, c='red', label="camera")
+
+            plt.legend()
+            plt.savefig("speech.png")
+
+            fps = self.frame_counter / time_limit
+            print("FPS: " + str(int(fps)))
+            self.report(self.size, "full_video.avi", "report.avi", 10)
+            print(self.test["id_number"] + ": Finished.")
+
+    def audio_record(self, time_limit, start_time, stream, vad, sample_rate, frames_per_buffer):
+        print("Audio recording: Started.")
+
+        while True:
+            time_passed = round(time.time() - start_time, 1)
+            end = time_passed > time_limit
+            if end:
+                break
+            data = stream.read(frames_per_buffer)
+            self.audio_buffer.append(data)
+            is_speech = vad.is_speech(data, sample_rate)
+            if time_passed not in self.voice_dict:
+                self.voice_dict[time_passed] = 0
+            else:
+                if is_speech:
+                    self.voice_dict[time_passed] = self.voice_dict[time_passed] + 1
+                else:
+                    self.voice_dict[time_passed] = self.voice_dict[time_passed] - 1
+
+        print("Audio recording: Stopped. ")
+
+    def video_record(self, time_limit, start_time, cap, w, h):
+        print("Video recording: Started.")
+        while True:
+            success, input_img = cap.read()
+            if success:
+                time_passed = round(time.time() - start_time, 1)
+                end = time_passed > time_limit
+                if end:
+                    break
+                self.frame_counter = self.frame_counter + 1
+                hours, remainder = divmod(round(time_limit - time_passed), 3600)
+                minutes, seconds = divmod(remainder, 60)
+                frame_time = "Time: " + '{:02}:{:02}:{:02}'.format(int(hours), int(minutes), int(seconds))
+                input_frame = Frame(input_img, frame_time, time_passed)
+                self.main_buffer.append(input_frame)
+                if self.object_detector_validation(input_frame, h, w):
+                    valid, landmarks, landmarks_np = self.face_detector_validation(input_frame, h, w)
+                    if valid:
+                        image_points = self.face_detector.get_head_pose_landmarks()
+                        valid = self.head_pose_detector_validation(input_frame, h, w, image_points)
+                        if valid:
+                            left_eye = self.face_detector.get_left_eye_landmarks()
+                            right_eye = self.face_detector.get_right_eye_landmarks()
+                            new_img, landmarks, landmarks_np = self.face_detector.align(input_img, left_eye, right_eye)
+                            left_eye = self.face_detector.get_left_eye_landmarks()
+                            right_eye = self.face_detector.get_right_eye_landmarks()
+                            closed = self.liveness_detector_validation(input_frame, left_eye, right_eye, time_passed)
+                            self.gaze_detector_validation(input_frame, new_img, left_eye, right_eye, closed)
+                            top_lip = self.face_detector.get_top_lip_landmarks()
+                            bottom_lip = self.face_detector.get_bottom_lip_landmarks()
+                            self.speech_detector_validation(new_img, input_frame, top_lip, bottom_lip)
+                            self.face_recognizer_validation(input_frame, new_img, landmarks)
                         else:
-                            self.face_detector.reset()
-                            self.head_pose_detector.reset()
                             self.liveness_detector.reset()
-                            self.eyes_tracker.reset()
+                            self.gaze_detector.reset()
                             self.speech_detector.reset()
                             self.face_recognizer.reset()
+                    else:
+                        self.head_pose_detector.reset()
+                        self.liveness_detector.reset()
+                        self.gaze_detector.reset()
+                        self.speech_detector.reset()
+                        self.face_recognizer.reset()
+                else:
+                    self.face_detector.reset()
+                    self.head_pose_detector.reset()
+                    self.liveness_detector.reset()
+                    self.gaze_detector.reset()
+                    self.speech_detector.reset()
+                    self.face_recognizer.reset()
 
-                        if self.warning != "":
-                            print("Warning: " + self.warning)
-                            self.warning = ""
+                if self.warning != "":
+                    print("Warning: " + self.warning + " " + str(frame_time))
+                    self.warning = ""
 
-                        cv2.putText(input_img, frame_time, (20, 30), cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 255, 0), 2)
-                        cv2.imshow('Test', input_img)
-                if cv2.waitKey(1) & 0xFF == ord('q') or end:
-                    break
+                cv2.putText(input_img, frame_time, (20, 30), cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 255, 0), 2)
+                cv2.imshow('Test', input_img)
+            if cv2.waitKey(1) & 0xFF == ord('q'):
+                break
 
-            self.main_report(size, self.main_buffer, "video.avi", 10)
-            self.invalid_buffer = [x for x in self.main_buffer if x.valid is False]
-            self.main_report(size, self.invalid_buffer, "report.avi", 10)
-            print(self.test["id_number"] + ": Finished.")
-            # fps = self.frame_counter / time_limit
-            # print("FPS: " + str(fps))
+        print("Video recording: Stopped. ")
+        self.object_detector.reset_person()
+        self.object_detector.reset_cellphone()
+        self.face_detector.reset()
+        self.head_pose_detector.reset()
+        self.liveness_detector.reset()
+        self.gaze_detector.reset()
+        self.speech_detector.reset()
+        self.face_recognizer.reset()
+
+        cv2.destroyAllWindows()
 
 
 proctoring_system = ProctoringSystem()
 
-print("a) Add students")
-print("b) Add tests")
+print("a) Add student")
+print("b) Add test")
 print("c) Start test")
 action = input()
 
 if action == "a":
-    proctoring_system.add_students()
-    print("Add students: Done.")
+    print("ID number: ")
+    student_id = input()
+    print("First name: ")
+    student_first_name = input()
+    print("Last name: ")
+    student_last_name = input()
+    print("Image path: ")
+    student_img = input()
+    proctoring_system.add_student(student_id, student_first_name, student_last_name, student_img)
+    print("Add student: Done.")
 elif action == "b":
-    proctoring_system.add_tests()
-    print("Add tests: Done.")
+    print("ID number: ")
+    test_id = input()
+    print("Duration")
+    print("Hours: ")
+    hours = input()
+    print("Minutes: ")
+    minutes = input()
+    print("Seconds: ")
+    seconds = input()
+    proctoring_system.add_test(test_id, hours, minutes, seconds)
+    print("Add test: Done.")
 else:
     proctoring_system.start("16704", "Math-test2")
     # print("Student id: ")

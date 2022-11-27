@@ -13,14 +13,13 @@ class Database:
         self.fs = firestore.client()
         self.bucket = storage.bucket()
 
-    def add_student(self, id_number, first_name, last_name, email, image_path):
+    def add_student(self, id_number, first_name, last_name, image_path):
         user = self.fs.collection('students').document()
         data = {
             "id": user.id,
             "id_number": id_number,
             "first_name": first_name,
-            "last_name": last_name,
-            "email": email
+            "last_name": last_name
         }
 
         # Add user to database
@@ -42,18 +41,19 @@ class Database:
 
         return user, img
 
-    def add_report(self, id_number, video_path):
-        # Add video report to storage
-        storage_video_path = 'students/' + str(id_number) + "/" + os.path.basename(video_path)
+    def add_report(self, id_number, test_id, video_name, video_path):
+        storage_video_path = 'students/' + str(id_number) + "/" + test_id + "/" + video_name
         blob = self.bucket.blob(storage_video_path)
         blob.upload_from_filename(video_path)
 
-    def add_test(self, id_number, duration):
+    def add_test(self, id_number, h, m, s):
         test = self.fs.collection('tests').document()
         data = {
             "id": test.id,
             "id_number": id_number,
-            "duration": duration
+            "hours": h,
+            "minutes": m,
+            "seconds": s
         }
 
         self.fs.collection('tests').document(test.id).set(data)

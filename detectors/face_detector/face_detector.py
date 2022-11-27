@@ -7,17 +7,17 @@ import numpy as np
 
 class FaceDetector:
 
-    def __init__(self, desiredLeftEye=(0.4, 0.4)):
+    def __init__(self, desiredLeftEye=(0.4, 0.4), desiredFaceWidth=256, desiredFaceHeight=256):
         self.net = cv2.dnn.readNetFromTensorflow("detectors/face_detector/opencv_face_detector_uint8.pb",
                                                  "detectors/face_detector/opencv_face_detector.pbtxt")
         self.predictor = dlib.shape_predictor('detectors/face_detector/shape_predictor_68_face_landmarks.dat')
         self.landmarks = None
         self.landmarks_np = None
+        self.result = None
 
         self.desiredLeftEye = desiredLeftEye
-
-        self.result = None
-        self.face_box = None
+        self.desiredFaceWidth = desiredFaceWidth
+        self.desiredFaceHeight = desiredFaceHeight
 
         self.window = []
         self.window_counter = 0
@@ -27,7 +27,7 @@ class FaceDetector:
         self.window_face_counter = 0
         self.cons = False
 
-    def detect_faces(self, image, h, w, threshold=0.7):
+    def detect_faces(self, image, h, w, threshold=0.6):
         blob = cv2.dnn.blobFromImage(cv2.resize(image, (300, 300)), 1.0, (300, 300), (104.0, 177.0, 123.0))
         self.net.setInput(blob)
         detections = self.net.forward()
@@ -49,9 +49,6 @@ class FaceDetector:
 
     def align(self, image, leftEyePts, rightEyePts):
 
-        desiredFaceWidth = 256
-        desiredFaceHeight = 256
-
         leftEyeCenter = leftEyePts.mean(axis=0).astype("int")
         rightEyeCenter = rightEyePts.mean(axis=0).astype("int")
 
@@ -63,7 +60,7 @@ class FaceDetector:
 
         dist = np.sqrt((dX ** 2) + (dY ** 2))
         desiredDist = (desiredRightEyeX - self.desiredLeftEye[0])
-        desiredDist *= desiredFaceWidth
+        desiredDist *= self.desiredFaceWidth
         scale = desiredDist / dist
 
         eyesCenter = ((leftEyeCenter[0] + rightEyeCenter[0]) // 2, (leftEyeCenter[1] + rightEyeCenter[1]) // 2)
@@ -71,12 +68,12 @@ class FaceDetector:
 
         M = cv2.getRotationMatrix2D(center, angle, scale)
 
-        tX = desiredFaceWidth * 0.5
-        tY = desiredFaceHeight * self.desiredLeftEye[1]
+        tX = self.desiredFaceWidth * 0.5
+        tY = self.desiredFaceHeight * self.desiredLeftEye[1]
         M[0, 2] += (tX - eyesCenter[0])
         M[1, 2] += (tY - eyesCenter[1])
 
-        (w, h) = (desiredFaceWidth, desiredFaceHeight)
+        (w, h) = (self.desiredFaceWidth, self.desiredFaceHeight)
         output = cv2.warpAffine(image, M, (w, h), flags=cv2.INTER_CUBIC)
 
         parts = self.landmarks.parts()
@@ -88,7 +85,7 @@ class FaceDetector:
         self.landmarks_np = transformed_landmarks
         self.landmarks = dlib.full_object_detection(dlib.rectangle(0, 0, w, h), parts)
 
-        # cv2.imshow('Aligned', output)
+        # cv2.imshow('New', output)
 
         return output, self.landmarks, self.landmarks_np
 
@@ -154,14 +151,14 @@ class FaceDetector:
     def reset(self):
         problem = False
         if self.cons:
-            if self.face_cons_counter >= 15:
+            if self.face_cons_counter >= self.window_limit/2:
                 for frame in self.face_cons_buffer:
-                    frame.msg += "Not 1 face! "
+                    frame.msg += "Not 1 person! "
                     frame.valid = False
                 problem = True
         elif self.window_counter >= 2 / 3 * self.window_limit and self.window_face_counter >= self.window_counter / 2:
             for i in range(self.window_counter):
-                self.window[i].msg += "Not 1 face! "
+                self.window[i].msg += "Not 1 person! "
                 self.window[i].valid = False
             problem = True
 
@@ -186,9 +183,9 @@ class FaceDetector:
             return problem
         elif self.cons:
             self.cons = False
-            if self.face_cons_counter >= 15:
+            if self.face_cons_counter >= self.window_limit/2:
                 for frame in self.face_cons_buffer:
-                    frame.msg += "Not 1 face! "
+                    frame.msg += "Not 1 person! "
                     frame.valid = False
                 problem = True
 
@@ -212,7 +209,7 @@ class FaceDetector:
                 self.cons = False
             if self.window_face_counter >= self.window_counter / 3:
                 for i in range(self.window_counter):
-                    self.window[i].msg += "Not 1 face! "
+                    self.window[i].msg += "Not 1 person! "
                     self.window[i].valid = False
                 problem = True
 

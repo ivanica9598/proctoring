@@ -13,8 +13,8 @@ class FaceRecognizer:
 
         self.window = []
         self.window_counter = 0
-        self.window_not_recognized = False
-        self.window_limit = 50
+        self.window_not_recognized = 0
+        self.window_limit = 150
         self.cons = False
 
     def set_image(self, image, marks, initial):
@@ -49,7 +49,7 @@ class FaceRecognizer:
     def reset(self):
         problem = False
 
-        if self.window_not_recognized:
+        if self.window_not_recognized >= 2:
             for frame in self.window:
                 frame.msg += "Not recognized! "
                 frame.valid = False
@@ -57,28 +57,27 @@ class FaceRecognizer:
 
         self.window = []
         self.window_counter = 0
-        self.window_not_recognized = False
+        self.window_not_recognized = 0
         self.cons = False
+        self.counter = 0
 
         return problem
 
     def validate(self, input_frame, valid):
         problem = False
-
         self.window_counter = self.window_counter + 1
         self.window.append(input_frame)
-
         if not valid:
-            self.window_not_recognized = True
+            self.window_not_recognized = self.window_not_recognized + 1
         if self.window_counter == self.window_limit:
-            if self.window_not_recognized:
+            if self.window_not_recognized >= 2:
                 for frame in self.window:
                     frame.msg += "Not recognized! "
                     frame.valid = False
                 problem = True
 
             self.window_counter = 0
-            self.window_not_recognized = False
+            self.window_not_recognized = 0
             self.window = []
 
         return problem

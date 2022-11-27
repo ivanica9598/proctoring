@@ -51,7 +51,7 @@ class ObjectDetector:
         # self.draw(frame, "person")
         # self.draw(frame, "cellphone")
 
-        return person_cnt == 1, cellphone_cnt == 0
+        return person_cnt < 2, cellphone_cnt == 0
 
     def draw(self, frame, class_name):
         if self.result is not None:
@@ -59,8 +59,6 @@ class ObjectDetector:
                 if box[2] == class_name:
                     (left, top, right, bottom) = box[0].astype("int")
                     draw_box(frame, [left, top, right, bottom], box[2], box[1])
-                    # cv2.putText(frame, "Cellphone detected!", (20, 70), cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 255, 0), 2)
-                    # cv2.putText(frame, "Not 1 person!", (20, 70), cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 255, 0), 2)
 
     def validate_person(self, input_frame, person_valid):
         if not person_valid:
@@ -74,9 +72,9 @@ class ObjectDetector:
             return problem
         elif self.person_cons:
             self.person_cons = False
-            if self.person_cons_counter >= 15:
+            if self.person_cons_counter >= self.window_limit/2:
                 for frame in self.person_cons_buffer:
-                    frame.msg += "Not 1 person! "
+                    frame.msg += "More then 1 person! "
                     frame.valid = False
                 problem = True
 
@@ -101,7 +99,7 @@ class ObjectDetector:
 
             if self.window_person_counter >= self.person_window_counter / 3:
                 for i in range(self.person_window_counter):
-                    self.person_window[i].msg += "Not 1 person! "
+                    self.person_window[i].msg += "More then 1 person! "
                     self.person_window[i].valid = False
                 problem = True
 
@@ -123,7 +121,7 @@ class ObjectDetector:
             return problem
         elif self.cellphone_cons:
             self.cellphone_cons = False
-            if self.cellphone_cons_counter >= 15:
+            if self.cellphone_cons_counter >= self.window_limit/2:
                 for frame in self.cellphone_cons_buffer:
                     frame.msg += "Cellphone detected! "
                     frame.valid = False
@@ -157,6 +155,52 @@ class ObjectDetector:
             self.cellphone_window_counter = 0
             self.window_cellphone_counter = 0
             self.cellphone_window = []
+
+        return problem
+
+    def reset_person(self):
+        problem = False
+        if self.person_cons:
+            if self.person_cons_counter >= self.window_limit/2:
+                for frame in self.person_cons_buffer:
+                    frame.msg += "More then 1 person! "
+                    frame.valid = False
+                problem = True
+        elif self.person_window_counter >= 2 / 3 * self.window_limit and self.window_person_counter >= self.person_window_counter / 2:
+            for i in range(self.person_window_counter):
+                self.person_window[i].msg += "More then 1 person! "
+                self.person_window[i].valid = False
+            problem = True
+
+        self.person_window = []
+        self.person_window_counter = 0
+        self.window_person_counter = 0
+        self.person_cons_buffer = []
+        self.person_cons_counter = 0
+        self.person_cons = False
+
+        return problem
+
+    def reset_cellphone(self):
+        problem = False
+        if self.cellphone_cons:
+            if self.cellphone_cons_counter >= self.window_limit/2:
+                for frame in self.cellphone_cons_buffer:
+                    frame.msg += "Cellphone detected! "
+                    frame.valid = False
+                problem = True
+        elif self.cellphone_window_counter >= 2 / 3 * self.window_limit and self.window_cellphone_counter >= self.cellphone_window_counter / 2:
+            for i in range(self.cellphone_window_counter):
+                self.cellphone_window[i].msg += "Cellphone detected! "
+                self.cellphone_window[i].valid = False
+            problem = True
+
+        self.cellphone_window = []
+        self.cellphone_window_counter = 0
+        self.window_cellphone_counter = 0
+        self.cellphone_cons_buffer = []
+        self.cellphone_cons_counter = 0
+        self.cellphone_cons = False
 
         return problem
 

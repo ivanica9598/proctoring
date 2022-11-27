@@ -1,5 +1,6 @@
 import numpy as np
 import cv2
+import math
 
 
 class HeadPoseDetector:
@@ -43,6 +44,7 @@ class HeadPoseDetector:
     def detect_head_pose(self, img, h, w, image_points):
         if not self.initialized:
             self.initialize(w, h)
+
         (success, rotation_vector, translation_vector) = cv2.solvePnP(self.face_3d_model, image_points,
                                                                       self.camera_matrix,
                                                                       self.dist_coeffs)
@@ -62,10 +64,18 @@ class HeadPoseDetector:
             result = False
 
         # self.draw_result(img)
-        # if result:
-        #    cv2.putText(img, "Head forward!", (20, 70), cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 255, 0), 2)
-        # else:
-        #    cv2.putText(img, "Head aside!", (20, 70), cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 255, 0), 2)
+
+        # for mark in image_points:
+        #     cv2.circle(img, (int(mark[0]), int(mark[1])), 3, (0, 255, 0), -1, cv2.LINE_AA)
+
+        # (nose_end_point2D, jacobian) = cv2.projectPoints(np.array([(0.0, 0.0, 1000.0)]), rotation_vector,
+        #                                              translation_vector, self.camera_matrix, self.dist_coeffs)
+
+        # p1 = (int(image_points[0][0]), int(image_points[0][1]))
+        # p2 = (int(nose_end_point2D[0][0][0]), int(nose_end_point2D[0][0][1]))
+
+        # cv2.line(img, p1, p2, (0, 255, 0), 2)
+
         return result
 
     def draw_result(self, img):
@@ -77,7 +87,7 @@ class HeadPoseDetector:
     def reset(self):
         problem = False
         if self.cons:
-            if self.head_cons_aside_counter >= 15:
+            if self.head_cons_aside_counter >= self.window_limit/2:
                 for frame in self.head_cons_aside_buffer:
                     frame.msg += "Head aside!"
                     frame.valid = False
@@ -106,7 +116,7 @@ class HeadPoseDetector:
             return problem
         elif self.cons:
             self.cons = False
-            if self.head_cons_aside_counter >= 15:
+            if self.head_cons_aside_counter >= self.window_limit/2:
                 for frame in self.head_cons_aside_buffer:
                     frame.msg += "Head aside! "
                     frame.valid = False

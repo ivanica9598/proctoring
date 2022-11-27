@@ -146,9 +146,9 @@
 							"font": "Arial;13;0",
 							"left": 648,
 							"top": 191,
-							"width": 88.03173828125,
+							"width": 90.20263671875,
 							"height": 25,
-							"text": "EyesTracker"
+							"text": "GazeDetector"
 						},
 						{
 							"_type": "RectangleView",

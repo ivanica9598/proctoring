@@ -1,8 +1,8 @@
 import cv2
 import numpy as np
 
-EYE_AR_THRESH = 0.25
-EYE_AR_CONSEC_FRAMES = 3
+EYE_AR_THRESH = 0.22
+EYE_AR_CONSEC_FRAMES = 2
 
 
 class LivenessDetector:
@@ -30,24 +30,24 @@ class LivenessDetector:
         leftEAR = self.eye_aspect_ratio(left_eye)
         rightEAR = self.eye_aspect_ratio(right_eye)
         ear = (leftEAR + rightEAR) / 2.0
-        blink = False
+        closed = False
         if ear < EYE_AR_THRESH:
             self.counter += 1
-            blink = True
+            closed = True
         else:
             if self.counter >= EYE_AR_CONSEC_FRAMES:
                 self.total += 1
             self.counter = 0
 
         # self.draw_result(frame, ear)
-        return not blink
+        return closed
 
     def draw_result(self, frame, ear):
-        cv2.putText(frame, "Blinks: {}".format(self.total), (10, 30),
+        cv2.putText(frame, "Blinks: {}".format(self.total), (10, 60),
                     cv2.FONT_HERSHEY_SIMPLEX, 0.7, (0, 0, 255), 2)
-        cv2.putText(frame, "Counter: {}".format(self.counter), (10, 60),
+        cv2.putText(frame, "Counter: {}".format(self.counter), (10, 90),
                     cv2.FONT_HERSHEY_SIMPLEX, 0.7, (0, 0, 255), 2)
-        cv2.putText(frame, "Ear: {}".format(ear), (10, 90),
+        cv2.putText(frame, "Ear: {}".format(ear), (10, 120),
                     cv2.FONT_HERSHEY_SIMPLEX, 0.7, (0, 0, 255), 2)
 
     def reset(self):
@@ -59,7 +59,7 @@ class LivenessDetector:
     def validate(self, input_frame, time_passed):
         problem = False
 
-        timer = time_passed % 30
+        timer = int(time_passed) % 30
         if self.last_val != timer:
             self.last_val = timer
             self.timer = self.timer + 1
