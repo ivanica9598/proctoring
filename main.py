@@ -349,8 +349,10 @@ class ProctoringSystem:
 proctoring_system = ProctoringSystem()
 
 print("a) Add student")
-print("b) Add test")
-print("c) Start test")
+print("a) Delete student")
+print("c) Add test")
+print("d) Delete test")
+print("e) Start test")
 action = input()
 
 if action == "a":
@@ -363,8 +365,11 @@ if action == "a":
     print("Image path: ")
     student_img = input()
     proctoring_system.add_student(student_id, student_first_name, student_last_name, student_img)
-    print("Add student: Done.")
 elif action == "b":
+    print("ID number: ")
+    student_id = input()
+    proctoring_system.database.delete_student(student_id)
+elif action == "c":
     print("ID number: ")
     test_id = input()
     print("Duration")
@@ -375,7 +380,10 @@ elif action == "b":
     print("Seconds: ")
     seconds = input()
     proctoring_system.add_test(test_id, hours, minutes, seconds)
-    print("Add test: Done.")
+elif action == "d":
+    print("ID number: ")
+    test_id = input()
+    proctoring_system.database.delete_test(test_id)
 else:
     proctoring_system.start("16704", "Math-test2")
     # print("Student id: ")
