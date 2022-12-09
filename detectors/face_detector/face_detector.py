@@ -56,15 +56,15 @@ class FaceDetector:
         dX = rightEyeCenter[0] - leftEyeCenter[0]
         angle = np.degrees(np.arctan2(dY, dX))
 
+        eyesCenter = ((leftEyeCenter[0] + rightEyeCenter[0]) // 2, (leftEyeCenter[1] + rightEyeCenter[1]) // 2)
+        center = (int(eyesCenter[0]), int(eyesCenter[1]))
+
         desiredRightEyeX = 1.0 - self.desiredLeftEye[0]
 
         dist = np.sqrt((dX ** 2) + (dY ** 2))
         desiredDist = (desiredRightEyeX - self.desiredLeftEye[0])
         desiredDist *= self.desiredFaceWidth
         scale = desiredDist / dist
-
-        eyesCenter = ((leftEyeCenter[0] + rightEyeCenter[0]) // 2, (leftEyeCenter[1] + rightEyeCenter[1]) // 2)
-        center = (int(eyesCenter[0]), int(eyesCenter[1]))
 
         M = cv2.getRotationMatrix2D(center, angle, scale)
 
@@ -137,7 +137,7 @@ class FaceDetector:
         if self.landmarks_np is not None:
             array = np.zeros((6, 2), dtype="double")
             # nose tip, chin, left eye corner, right eye corner, left mouth corner, right mouth corner
-            ids = [30, 8, 36, 45, 48, 54]
+            ids = [30, 8, 45, 36, 54, 48]
             for i in range(len(ids)):
                 array[i] = self.landmarks_np[ids[i]]
 

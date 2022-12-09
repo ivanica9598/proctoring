@@ -58,7 +58,7 @@ class HeadPoseDetector:
 
         if self.y > 35 or self.y < -30:
             result = False
-        elif (self.x > 165) or (0 > self.x < -176):
+        elif self.x > 20 or self.x < -15:
             result = True
         else:
             result = False
@@ -69,7 +69,7 @@ class HeadPoseDetector:
         #     cv2.circle(img, (int(mark[0]), int(mark[1])), 3, (0, 255, 0), -1, cv2.LINE_AA)
 
         # (nose_end_point2D, jacobian) = cv2.projectPoints(np.array([(0.0, 0.0, 1000.0)]), rotation_vector,
-        #                                              translation_vector, self.camera_matrix, self.dist_coeffs)
+        #                                             translation_vector, self.camera_matrix, self.dist_coeffs)
 
         # p1 = (int(image_points[0][0]), int(image_points[0][1]))
         # p2 = (int(nose_end_point2D[0][0][0]), int(nose_end_point2D[0][0][1]))

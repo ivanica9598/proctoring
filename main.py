@@ -119,10 +119,10 @@ class ProctoringSystem:
 
     def liveness_detector_validation(self, input_frame, left_eye, right_eye, time_passed):
         closed = self.liveness_detector.is_blinking(input_frame.img, left_eye, right_eye)
-        problem = self.liveness_detector.validate(input_frame, time_passed)
+        # problem = self.liveness_detector.validate(input_frame, time_passed)
 
-        if problem:
-            self.warning += 'Not live face!'
+        #if problem:
+        #    self.warning += 'Not live face!'
 
         return closed
 
@@ -161,7 +161,7 @@ class ProctoringSystem:
 
             for frame in self.main_buffer:
                 cv2.putText(frame.img, frame.msg, (20, 70), cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 0, 255), 2)
-                cv2.putText(frame.img, frame.time, (20, 30), cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 255, 0), 2)
+                cv2.putText(frame.img, frame.time, (20, 30), cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 0, 0), 2)
                 full_out.write(frame.img)
                 if not frame.valid:
                     invalid_out.write(frame.img)
@@ -348,46 +348,51 @@ class ProctoringSystem:
 
 proctoring_system = ProctoringSystem()
 
-print("a) Add student")
-print("a) Delete student")
-print("c) Add test")
-print("d) Delete test")
-print("e) Start test")
-action = input()
+while True:
+    print("")
+    print("a) Add student")
+    print("a) Delete student")
+    print("c) Add test")
+    print("d) Delete test")
+    print("e) Start test")
+    action = input()
 
-if action == "a":
-    print("ID number: ")
-    student_id = input()
-    print("First name: ")
-    student_first_name = input()
-    print("Last name: ")
-    student_last_name = input()
-    print("Image path: ")
-    student_img = input()
-    proctoring_system.add_student(student_id, student_first_name, student_last_name, student_img)
-elif action == "b":
-    print("ID number: ")
-    student_id = input()
-    proctoring_system.database.delete_student(student_id)
-elif action == "c":
-    print("ID number: ")
-    test_id = input()
-    print("Duration")
-    print("Hours: ")
-    hours = input()
-    print("Minutes: ")
-    minutes = input()
-    print("Seconds: ")
-    seconds = input()
-    proctoring_system.add_test(test_id, hours, minutes, seconds)
-elif action == "d":
-    print("ID number: ")
-    test_id = input()
-    proctoring_system.database.delete_test(test_id)
-else:
-    proctoring_system.start("16704", "Math-test2")
-    # print("Student id: ")
-    # student = input()
-    # print("Test id: ")
-    # test = input()
-    # proctoring_system.start(student, test)
+    if action == "a":
+        print("ID number: ")
+        student_id = input()
+        print("First name: ")
+        student_first_name = input()
+        print("Last name: ")
+        student_last_name = input()
+        print("Image path: ")
+        student_img = input()
+        proctoring_system.add_student(student_id, student_first_name, student_last_name, student_img)
+    elif action == "b":
+        print("ID number: ")
+        student_id = input()
+        proctoring_system.database.delete_student(student_id)
+    elif action == "c":
+        print("ID number: ")
+        test_id = input()
+        print("Duration")
+        print("Hours: ")
+        hours = input()
+        print("Minutes: ")
+        minutes = input()
+        print("Seconds: ")
+        seconds = input()
+        proctoring_system.add_test(test_id, hours, minutes, seconds)
+    elif action == "d":
+        print("ID number: ")
+        test_id = input()
+        proctoring_system.database.delete_test(test_id)
+    else:
+        proctoring_system.start("16704", "Math-test2")
+        # print("Student id: ")
+        # student = input()
+        # print("Test id: ")
+        # test = input()
+        # proctoring_system.start(student, test)
+
+    if cv2.waitKey(1) & 0xFF == ord('b'):
+        break
