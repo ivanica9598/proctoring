@@ -65,7 +65,8 @@ class ProctoringSystem:
 
     def load_student(self, student_id):
         self.student, self.student_image = self.database.load_student(student_id)
-        print("Welcome " + self.student["first_name"] + " " + self.student["last_name"] + "!")
+        print("Welcome, " + self.student["first_name"] + " " + self.student["last_name"] + "!")
+        print()
 
         (h, w) = self.student_image.shape[:2]
         frame = Frame(self.student_image)
@@ -113,16 +114,16 @@ class ProctoringSystem:
         problem = self.head_pose_detector.validate(input_frame, valid)
 
         if problem:
-            self.warning += 'Head aside!'
+            self.warning += "Unallowed head movement detected!"
 
         return valid
 
     def liveness_detector_validation(self, input_frame, left_eye, right_eye, time_passed):
         closed = self.liveness_detector.is_blinking(input_frame.img, left_eye, right_eye)
-        # problem = self.liveness_detector.validate(input_frame, time_passed)
+        problem = self.liveness_detector.validate(input_frame, time_passed)
 
-        #if problem:
-        #    self.warning += 'Not live face!'
+        if problem:
+            self.warning += 'Not live face!'
 
         return closed
 
@@ -131,7 +132,7 @@ class ProctoringSystem:
         problem = self.gaze_detector.validate(input_frame, valid)
 
         if problem:
-            self.warning += 'Looked aside!'
+            self.warning += 'Unallowed eye movement detected!'
 
         return valid
 
@@ -140,7 +141,7 @@ class ProctoringSystem:
         problem = self.speech_detector.validate(input_frame, valid)
 
         if problem:
-            self.warning += "Don't speak!"
+            self.warning += "Speaking detected!"
         return valid
 
     def face_recognizer_validation(self, input_frame, img, landmarks):
@@ -183,73 +184,73 @@ class ProctoringSystem:
             (h, w) = input_img.shape[:2]
             self.size = (w, h)
 
-            vad = webrtcvad.Vad(3)
-            sample_rate = 16000
-            frame_duration = 0.02
-            frames_per_buffer = int(frame_duration * sample_rate)
+            #vad = webrtcvad.Vad(3)
+            #sample_rate = 16000
+            #frame_duration = 0.02
+            #frames_per_buffer = int(frame_duration * sample_rate)
 
-            FORMAT = pyaudio.paInt16
-            CHANNELS = 1
-            p = pyaudio.PyAudio()
-            stream = p.open(
-                format=FORMAT,
-                channels=CHANNELS,
-                rate=sample_rate,
-                input=True,
-                frames_per_buffer=frames_per_buffer
-            )
+            #FORMAT = pyaudio.paInt16
+            #CHANNELS = 1
+            #p = pyaudio.PyAudio()
+            #stream = p.open(
+            #    format=FORMAT,
+            #    channels=CHANNELS,
+            #    rate=sample_rate,
+            #    input=True,
+            #    frames_per_buffer=frames_per_buffer
+            #)
 
             start_time = time.time()
+            self.video_record(time_limit, start_time, cap, w, h)
+            #audio_thread = threading.Thread(target=self.audio_record, args=(
+            #    time_limit, start_time, stream, vad, sample_rate, frames_per_buffer))
+            #video_thread = threading.Thread(target=self.video_record, args=(time_limit, start_time, cap, w, h))
 
-            audio_thread = threading.Thread(target=self.audio_record, args=(
-                time_limit, start_time, stream, vad, sample_rate, frames_per_buffer))
-            video_thread = threading.Thread(target=self.video_record, args=(time_limit, start_time, cap, w, h))
+            #audio_thread.start()
+            #video_thread.start()
 
-            audio_thread.start()
-            video_thread.start()
-
-            audio_thread.join()
-            video_thread.join()
+            #audio_thread.join()
+            #video_thread.join()
 
             cap.release()
-            stream.stop_stream()
-            stream.close()
-            p.terminate()
+            #stream.stop_stream()
+            #stream.close()
+            #p.terminate()
 
-            plt.figure(figsize=(15, 5))
-            plt.ylabel('Speech probability')
-            plt.xlabel('Time (s)')
-            plt.xlim(0, time_limit)
-            plt.xticks(np.arange(0, time_limit + 1, 5.0))
+            #plt.figure(figsize=(15, 5))
+            #plt.ylabel('Speech probability')
+            #plt.xlabel('Time (s)')
+            #plt.xlim(0, time_limit)
+            #plt.xticks(np.arange(0, time_limit + 1, 5.0))
 
-            keys = self.voice_dict.keys()
-            times = []
-            values = []
-            for key in keys:
-                if self.voice_dict[key] > 0:
-                    values.append(1)
-                    times.append(key)
-                # else:
-                #    values.append(0)
-            plt.plot(times, values, c='blue', label="microphone", marker='o', linestyle='None', markersize=2.0)
+            #keys = self.voice_dict.keys()
+            #times = []
+            #values = []
+            #for key in keys:
+            #    if self.voice_dict[key] > 0:
+            #        values.append(1)
+            #        times.append(key)
+            #    # else:
+            #    #    values.append(0)
+            #plt.plot(times, values, c='blue', label="microphone", marker='o', linestyle='None', markersize=2.0)
 
-            times = []
-            values = []
-            for frame in self.main_buffer:
-                times.append(frame.time_passed)
-                if frame.speech:
-                    values.append(1)
-                else:
-                    values.append(0)
+            #times = []
+            #values = []
+            #for frame in self.main_buffer:
+            #    times.append(frame.time_passed)
+            #    if frame.speech:
+            #        values.append(1)
+            #    else:
+            #        values.append(0)
 
-            plt.plot(times, values, c='red', label="camera")
+            #plt.plot(times, values, c='red', label="camera")
 
-            plt.legend()
-            plt.savefig("speech.png")
+            #plt.legend()
+            #plt.savefig("speech.png")
 
-            fps = self.frame_counter / time_limit
-            print("FPS: " + str(int(fps)))
-            self.report(self.size, "full_video.avi", "report.avi", 10)
+            #fps = self.frame_counter / time_limit
+            #print("FPS: " + str(int(fps)))
+            self.report(self.size, "full_video.avi", "report.avi", 15)
             print(self.test["id_number"] + ": Finished.")
 
     def audio_record(self, time_limit, start_time, stream, vad, sample_rate, frames_per_buffer):
@@ -275,6 +276,7 @@ class ProctoringSystem:
 
     def video_record(self, time_limit, start_time, cap, w, h):
         print("Video recording: Started.")
+        print()
         while True:
             success, input_img = cap.read()
             if success:
@@ -356,6 +358,7 @@ while True:
     print("d) Delete test")
     print("e) Start test")
     action = input()
+    print()
 
     if action == "a":
         print("ID number: ")
@@ -387,12 +390,13 @@ while True:
         test_id = input()
         proctoring_system.database.delete_test(test_id)
     else:
-        proctoring_system.start("16704", "Math-test2")
-        # print("Student id: ")
-        # student = input()
-        # print("Test id: ")
-        # test = input()
-        # proctoring_system.start(student, test)
+        # proctoring_system.start("16704", "Math-test2")
+        print("Student: ")
+        student = input()
+        print("Test: ")
+        test = input()
+        print()
+        proctoring_system.start(student, test)
 
     if cv2.waitKey(1) & 0xFF == ord('b'):
         break

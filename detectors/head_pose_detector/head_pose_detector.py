@@ -59,9 +59,9 @@ class HeadPoseDetector:
         if self.y > 35 or self.y < -30:
             result = False
         elif self.x > 20 or self.x < -15:
-            result = True
-        else:
             result = False
+        else:
+            result = True
 
         # self.draw_result(img)
 
@@ -91,12 +91,14 @@ class HeadPoseDetector:
                 for frame in self.head_cons_aside_buffer:
                     frame.msg += "Head aside!"
                     frame.valid = False
+
                 problem = True
         elif self.window_counter >= 2 / 3 * self.window_limit and self.window_head_aside_counter >= self.window_counter / 2:
             for i in range(self.window_counter):
                 self.window[i].msg += "Head aside!"
                 self.window[i].valid = False
             problem = True
+
 
         self.window = []
         self.window_counter = 0
