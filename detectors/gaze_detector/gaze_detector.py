@@ -5,8 +5,8 @@ from detectors.gaze_detector.eye import Eye
 class GazeDetector:
     def __init__(self):
         self.frame = None
-        self.eye_left = None
-        self.eye_right = None
+        self.left_eye = None
+        self.right_eye = None
         self.horizontal_ratio = None
         self.vertical_ratio = None
 
@@ -20,8 +20,8 @@ class GazeDetector:
 
     def draw_pupils(self, frame):
         color = (0, 255, 0)
-        x_left, y_left = self.eye_left.get_pupil_coordinates()
-        x_right, y_right = self.eye_right.get_pupil_coordinates()
+        x_left, y_left = self.left_eye.get_pupil_coordinates()
+        x_right, y_right = self.right_eye.get_pupil_coordinates()
         cv2.line(frame, (x_left - 5, y_left), (x_left + 5, y_left), color)
         cv2.line(frame, (x_left, y_left - 5), (x_left, y_left + 5), color)
         cv2.line(frame, (x_right - 5, y_right), (x_right + 5, y_right), color)
@@ -33,12 +33,12 @@ class GazeDetector:
 
         self.frame = frame
         frame = cv2.cvtColor(self.frame, cv2.COLOR_BGR2GRAY)
-        self.eye_left = Eye(frame, left_eye_landmarks)
-        self.eye_right = Eye(frame, right_eye_landmarks)
-        if self.eye_left.pupils_detected() and self.eye_right.pupils_detected():
-            self.vertical_ratio = (self.eye_left.get_vertical_percentage() + self.eye_right.get_vertical_percentage())/2
-            self.horizontal_ratio = (self.eye_left.get_horizontal_percentage() +
-                                     self.eye_right.get_horizontal_percentage()) / 2
+        self.left_eye = Eye(frame, left_eye_landmarks)
+        self.right_eye = Eye(frame, right_eye_landmarks)
+        if self.left_eye.pupils_detected() and self.right_eye.pupils_detected():
+            self.vertical_ratio = (self.left_eye.get_vertical_ratio() + self.right_eye.get_vertical_ratio()) / 2
+            self.horizontal_ratio = (self.left_eye.get_horizontal_ratio() +
+                                     self.right_eye.get_horizontal_ratio()) / 2
             # self.draw_pupils(self.frame)
             # cv2.imshow('Eyes', self.frame)
             if self.horizontal_ratio <= 0.35:
@@ -119,4 +119,3 @@ class GazeDetector:
             self.window = []
 
         return problem
-

@@ -48,7 +48,6 @@ class HeadPoseDetector:
         (success, rotation_vector, translation_vector) = cv2.solvePnP(self.face_3d_model, image_points,
                                                                       self.camera_matrix,
                                                                       self.dist_coeffs)
-
         rmat, jac = cv2.Rodrigues(rotation_vector)
         angles, mtxR, mtxQ, Qx, Qy, Qz = cv2.RQDecomp3x3(rmat)
 

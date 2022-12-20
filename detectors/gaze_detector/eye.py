@@ -88,13 +88,13 @@ class Eye:
         y = self.origin[1] + self.pupil_y
         return x, y
 
-    def get_horizontal_percentage(self):
+    def get_horizontal_ratio(self):
         if self.pupils_detected():
             return self.pupil_x / (self.center[0] * 2)
         else:
             return None
 
-    def get_vertical_percentage(self):
+    def get_vertical_ratio(self):
         if self.pupils_detected():
             return self.pupil_y / (self.center[1] * 2)
         else:

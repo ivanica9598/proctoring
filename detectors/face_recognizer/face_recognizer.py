@@ -18,13 +18,11 @@ class FaceRecognizer:
         self.cons = False
 
     def set_image(self, image, marks, initial):
-        encodings = []
-        if not initial:
-            encodings = np.array(self.net.compute_face_descriptor(image, marks, 1))
-            self.input_image_encodings = encodings
-        else:
-            encodings = np.array(self.net.compute_face_descriptor(image, marks, 1))
+        encodings = np.array(self.net.compute_face_descriptor(image, marks, 1))
+        if initial:
             self.initial_image_encodings = encodings
+        else:
+            self.input_image_encodings = encodings
         return len(encodings) != 0
 
     def compare_faces(self, img, landmarks):
@@ -67,6 +65,7 @@ class FaceRecognizer:
         problem = False
         self.window_counter = self.window_counter + 1
         self.window.append(input_frame)
+
         if not valid:
             self.window_not_recognized = self.window_not_recognized + 1
         if self.window_counter == self.window_limit:
@@ -81,4 +80,3 @@ class FaceRecognizer:
             self.window = []
 
         return problem
-

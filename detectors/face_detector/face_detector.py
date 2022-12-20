@@ -7,7 +7,7 @@ import numpy as np
 
 class FaceDetector:
 
-    def __init__(self, desiredLeftEye=(0.4, 0.4), desiredFaceWidth=256, desiredFaceHeight=256):
+    def __init__(self, desired_left_eye=(0.4, 0.4), desired_face_width=256, desiredFaceHeight=256):
         self.net = cv2.dnn.readNetFromTensorflow("detectors/face_detector/opencv_face_detector_uint8.pb",
                                                  "detectors/face_detector/opencv_face_detector.pbtxt")
         self.predictor = dlib.shape_predictor('detectors/face_detector/shape_predictor_68_face_landmarks.dat')
@@ -15,8 +15,8 @@ class FaceDetector:
         self.landmarks_np = None
         self.result = None
 
-        self.desiredLeftEye = desiredLeftEye
-        self.desiredFaceWidth = desiredFaceWidth
+        self.desired_left_eye = desired_left_eye
+        self.desired_face_width = desired_face_width
         self.desiredFaceHeight = desiredFaceHeight
 
         self.window = []
@@ -47,33 +47,31 @@ class FaceDetector:
 
         return valid, self.landmarks, self.landmarks_np
 
-    def align(self, image, leftEyePts, rightEyePts):
+    def align(self, image, left_eye_pts, right_eye_pts):
+        desiredRightEyeX = 1.0 - self.desired_left_eye[0]
 
-        leftEyeCenter = leftEyePts.mean(axis=0).astype("int")
-        rightEyeCenter = rightEyePts.mean(axis=0).astype("int")
+        left_eye_center = left_eye_pts.mean(axis=0).astype("int")
+        right_eye_center = right_eye_pts.mean(axis=0).astype("int")
 
-        dY = rightEyeCenter[1] - leftEyeCenter[1]
-        dX = rightEyeCenter[0] - leftEyeCenter[0]
+        dY = right_eye_center[1] - left_eye_center[1]
+        dX = right_eye_center[0] - left_eye_center[0]
         angle = np.degrees(np.arctan2(dY, dX))
 
-        eyesCenter = ((leftEyeCenter[0] + rightEyeCenter[0]) // 2, (leftEyeCenter[1] + rightEyeCenter[1]) // 2)
-        center = (int(eyesCenter[0]), int(eyesCenter[1]))
-
-        desiredRightEyeX = 1.0 - self.desiredLeftEye[0]
+        eyes_center = ((left_eye_center[0] + right_eye_center[0]) // 2, (left_eye_center[1] + right_eye_center[1]) // 2)
+        center = (int(eyes_center[0]), int(eyes_center[1]))
 
         dist = np.sqrt((dX ** 2) + (dY ** 2))
-        desiredDist = (desiredRightEyeX - self.desiredLeftEye[0])
-        desiredDist *= self.desiredFaceWidth
+        desiredDist = (desiredRightEyeX - self.desired_left_eye[0])
+        desiredDist *= self.desired_face_width
         scale = desiredDist / dist
+        M = cv2.getRotationMatrix2D(center, 0, scale)
 
-        M = cv2.getRotationMatrix2D(center, angle, scale)
+        tX = self.desired_face_width * 0.5
+        tY = self.desiredFaceHeight * self.desired_left_eye[1]
+        M[0, 2] += (tX - eyes_center[0])
+        M[1, 2] += (tY - eyes_center[1])
 
-        tX = self.desiredFaceWidth * 0.5
-        tY = self.desiredFaceHeight * self.desiredLeftEye[1]
-        M[0, 2] += (tX - eyesCenter[0])
-        M[1, 2] += (tY - eyesCenter[1])
-
-        (w, h) = (self.desiredFaceWidth, self.desiredFaceHeight)
+        (w, h) = (self.desired_face_width, self.desiredFaceHeight)
         output = cv2.warpAffine(image, M, (w, h), flags=cv2.INTER_CUBIC)
 
         parts = self.landmarks.parts()

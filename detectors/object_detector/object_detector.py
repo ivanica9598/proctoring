@@ -5,10 +5,11 @@ from detectors.helpers import draw_box
 
 class ObjectDetector:
     def __init__(self):
-        self.neural_network = cv2.dnn.readNetFromTensorflow('detectors/object_detector/frozen_inference_graph.pb',
-                                                            'detectors/object_detector/ssd_mobilenet_v2_coco_2018_03_29.pbtxt')
         with open('detectors/object_detector/COCO_labels.txt', 'r') as f:
             self.classes = f.read().split('\n')
+
+        self.neural_network = cv2.dnn.readNetFromTensorflow('detectors/object_detector/frozen_inference_graph.pb',
+                                                            'detectors/object_detector/ssd_mobilenet_v2_coco_2018_03_29.pbtxt')
 
         self.result = None
         self.window_limit = 30
@@ -45,7 +46,7 @@ class ObjectDetector:
                     self.result.append((detections[0, 0, i, 3:7] * np.array([w, h, w, h]), score, class_name))
                     if class_name == "person":
                         person_cnt = person_cnt + 1
-                    if class_name == "cellphone":
+                    else:
                         cellphone_cnt = cellphone_cnt + 1
 
         # self.draw(frame, "person")

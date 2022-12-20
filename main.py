@@ -49,7 +49,6 @@ class ProctoringSystem:
         self.warning = ""
 
         self.voice_dict = {}
-        self.audio_buffer = []
 
     def add_student(self, id_num, first_name, last_name, img_path):
         self.database.add_student(id_num, first_name, last_name, img_path)
@@ -76,11 +75,11 @@ class ProctoringSystem:
             left_eye = self.face_detector.get_left_eye_landmarks()
             right_eye = self.face_detector.get_right_eye_landmarks()
             self.student_image, landmarks, _ = self.face_detector.align(self.student_image, left_eye, right_eye)
-            # cv2.imshow('Student', self.student_image)
 
             top_lip = self.face_detector.get_top_lip_landmarks()
             bottom_lip = self.face_detector.get_bottom_lip_landmarks()
             self.speech_detector.initialize(self.student_image, top_lip, bottom_lip)
+            # cv2.imshow('Student', self.student_image)
             valid = self.face_recognizer.set_image(self.student_image, landmarks, True)
 
         return valid
@@ -258,11 +257,9 @@ class ProctoringSystem:
 
         while True:
             time_passed = round(time.time() - start_time, 1)
-            end = time_passed > time_limit
-            if end:
+            if time_passed > time_limit:
                 break
             data = stream.read(frames_per_buffer)
-            self.audio_buffer.append(data)
             is_speech = vad.is_speech(data, sample_rate)
             if time_passed not in self.voice_dict:
                 self.voice_dict[time_passed] = 0
@@ -390,13 +387,13 @@ while True:
         test_id = input()
         proctoring_system.database.delete_test(test_id)
     else:
-        # proctoring_system.start("16704", "Math-test2")
-        print("Student: ")
-        student = input()
-        print("Test: ")
-        test = input()
-        print()
-        proctoring_system.start(student, test)
+        proctoring_system.start("16704", "Math-test2")
+        #print("Student: ")
+        #student = input()
+        #print("Test: ")
+        #test = input()
+        #print()
+        #proctoring_system.start(student, test)
 
     if cv2.waitKey(1) & 0xFF == ord('b'):
         break
